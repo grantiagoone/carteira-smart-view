@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,7 @@ import Rebalance from "./pages/Rebalance";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Register from "./pages/Register";
+import Login from "./pages/Login"; // Novo import
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} /> {/* Nova rota */}
           <Route path="/portfolios" element={<Portfolios />} />
           <Route path="/portfolio/new" element={<NewPortfolio />} />
           <Route path="/strategies" element={<Strategies />} />
