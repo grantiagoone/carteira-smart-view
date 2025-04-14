@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,7 @@ import NewContribution from "./pages/NewContribution";
 import Rebalance from "./pages/Rebalance";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Register from "./pages/Register";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +24,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/portfolios" element={<Portfolios />} />
           <Route path="/portfolio/new" element={<NewPortfolio />} />
           <Route path="/strategies" element={<Strategies />} />
