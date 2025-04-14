@@ -31,16 +31,37 @@ const NewPortfolio = () => {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, we would save this to a database
-    console.log(values);
+    // Carregar carteiras existentes ou inicializar com array vazio
+    const existingPortfolios = JSON.parse(localStorage.getItem('portfolios') || '[]');
+    
+    // Criar nova carteira com ID único e dados padrão
+    const newPortfolio = {
+      id: Date.now(), // Usar timestamp como ID único
+      name: values.name,
+      description: values.description || "",
+      value: 0,
+      returnPercentage: 0,
+      returnValue: 0,
+      allocationData: [
+        { name: 'Ações', value: 40, color: '#1E40AF' },
+        { name: 'FIIs', value: 20, color: '#0D9488' },
+        { name: 'Renda Fixa', value: 30, color: '#F59E0B' },
+        { name: 'Internacional', value: 10, color: '#6B7280' }
+      ]
+    };
+    
+    // Adicionar nova carteira e salvar no localStorage
+    const updatedPortfolios = [...existingPortfolios, newPortfolio];
+    localStorage.setItem('portfolios', JSON.stringify(updatedPortfolios));
+    
+    console.log("Nova carteira criada:", newPortfolio);
     
     toast({
       title: "Carteira criada com sucesso!",
       description: `A carteira ${values.name} foi criada.`,
     });
 
-    // Navigate to the strategy definition page
-    // In a real app, we would create the portfolio first and then navigate to strategy definition
+    // Navegar para a página de definição de estratégia
     navigate("/strategies");
   }
 
