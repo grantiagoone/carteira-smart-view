@@ -27,6 +27,13 @@ const notificationsFormSchema = z.object({
   performance_reports: z.boolean(),
 });
 
+// Schema for the preferences tab
+const preferencesFormSchema = z.object({
+  exportData: z.boolean().default(false),
+  clearDemoData: z.boolean().default(false),
+  deleteAccount: z.boolean().default(false),
+});
+
 const Settings = () => {
   const { toast } = useToast();
 
@@ -48,6 +55,15 @@ const Settings = () => {
     },
   });
 
+  const preferencesForm = useForm<z.infer<typeof preferencesFormSchema>>({
+    resolver: zodResolver(preferencesFormSchema),
+    defaultValues: {
+      exportData: false,
+      clearDemoData: false,
+      deleteAccount: false,
+    },
+  });
+
   function onProfileSubmit(data: z.infer<typeof profileFormSchema>) {
     toast({
       title: "Perfil atualizado",
@@ -61,6 +77,35 @@ const Settings = () => {
       description: "Suas preferências de notificações foram atualizadas.",
     });
   }
+
+  function onPreferencesSubmit(data: z.infer<typeof preferencesFormSchema>) {
+    toast({
+      title: "Preferências do sistema salvas",
+      description: "Suas preferências do sistema foram atualizadas.",
+    });
+  }
+
+  const handleExportData = () => {
+    toast({
+      title: "Exportação iniciada",
+      description: "Seus dados estão sendo exportados.",
+    });
+  };
+
+  const handleClearDemoData = () => {
+    toast({
+      title: "Dados de demonstração removidos",
+      description: "Todos os dados de demonstração foram removidos com sucesso.",
+    });
+  };
+
+  const handleDeleteAccount = () => {
+    toast({
+      title: "Conta excluída",
+      description: "Sua conta foi excluída permanentemente.",
+      variant: "destructive",
+    });
+  };
 
   return (
     <DashboardLayout>
@@ -237,35 +282,39 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Exportar Dados</FormLabel>
-                  <FormDescription>
-                    Faça o download dos seus dados de carteira e aportes em formato CSV.
-                  </FormDescription>
-                </div>
-                <Button variant="outline">Exportar</Button>
-              </div>
-              
-              <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Limpar Dados de Demonstração</FormLabel>
-                  <FormDescription>
-                    Remove todos os dados de demonstração da plataforma.
-                  </FormDescription>
-                </div>
-                <Button variant="outline">Limpar</Button>
-              </div>
-              
-              <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Excluir Conta</FormLabel>
-                  <FormDescription>
-                    Esta ação removerá permanentemente todos os seus dados e não pode ser desfeita.
-                  </FormDescription>
-                </div>
-                <Button variant="destructive">Excluir</Button>
-              </div>
+              <Form {...preferencesForm}>
+                <form onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)} className="space-y-6">
+                  <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Exportar Dados</FormLabel>
+                      <FormDescription>
+                        Faça o download dos seus dados de carteira e aportes em formato CSV.
+                      </FormDescription>
+                    </div>
+                    <Button type="button" variant="outline" onClick={handleExportData}>Exportar</Button>
+                  </div>
+                  
+                  <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Limpar Dados de Demonstração</FormLabel>
+                      <FormDescription>
+                        Remove todos os dados de demonstração da plataforma.
+                      </FormDescription>
+                    </div>
+                    <Button type="button" variant="outline" onClick={handleClearDemoData}>Limpar</Button>
+                  </div>
+                  
+                  <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Excluir Conta</FormLabel>
+                      <FormDescription>
+                        Esta ação removerá permanentemente todos os seus dados e não pode ser desfeita.
+                      </FormDescription>
+                    </div>
+                    <Button type="button" variant="destructive" onClick={handleDeleteAccount}>Excluir</Button>
+                  </div>
+                </form>
+              </Form>
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -42,22 +43,32 @@ const FormField = <
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
-  const { getFieldState, formState } = useFormContext()
-
-  const fieldState = getFieldState(fieldContext.name, formState)
+  const formContext = useFormContext()
 
   if (!fieldContext) {
     throw new Error("useFormField should be used within <FormField>")
   }
 
-  const { id } = itemContext
+  // Add null check for formContext to prevent destructuring error
+  if (!formContext) {
+    return {
+      id: itemContext?.id,
+      name: fieldContext.name,
+      formItemId: itemContext ? `${itemContext.id}-form-item` : undefined,
+      formDescriptionId: itemContext ? `${itemContext.id}-form-item-description` : undefined,
+      formMessageId: itemContext ? `${itemContext.id}-form-item-message` : undefined,
+    }
+  }
+
+  const { getFieldState, formState } = formContext
+  const fieldState = getFieldState(fieldContext.name, formState)
 
   return {
-    id,
+    id: itemContext?.id,
     name: fieldContext.name,
-    formItemId: `${id}-form-item`,
-    formDescriptionId: `${id}-form-item-description`,
-    formMessageId: `${id}-form-item-message`,
+    formItemId: itemContext ? `${itemContext.id}-form-item` : undefined,
+    formDescriptionId: itemContext ? `${itemContext.id}-form-item-description` : undefined,
+    formMessageId: itemContext ? `${itemContext.id}-form-item-message` : undefined,
     ...fieldState,
   }
 }
@@ -66,8 +77,8 @@ type FormItemContextValue = {
   id: string
 }
 
-const FormItemContext = React.createContext<FormItemContextValue>(
-  {} as FormItemContextValue
+const FormItemContext = React.createContext<FormItemContextValue | undefined>(
+  undefined
 )
 
 const FormItem = React.forwardRef<
