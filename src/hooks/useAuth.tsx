@@ -1,37 +1,55 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Session, User } from '@supabase/supabase-js';
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = localStorage.getItem('currentUser');
-    setIsAuthenticated(!!user);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsAuthenticated(!!session);
+        
+        if (!session && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+          navigate('/login');
+        }
+      }
+    );
 
-    if (!user) {
-      navigate('/login');
-    }
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsAuthenticated(!!session);
+      
+      if (!session && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        navigate('/login');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const login = (email: string, password: string) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: any) => u.email === email && u.password === password);
-
-    if (user) {
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      setIsAuthenticated(true);
-      return true;
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error logging out:', error);
+      return false;
     }
-    return false;
-  };
-
-  const logout = () => {
-    localStorage.removeItem('currentUser');
     setIsAuthenticated(false);
+    setUser(null);
+    setSession(null);
     navigate('/login');
+    return true;
   };
 
-  return { isAuthenticated, login, logout };
+  return { isAuthenticated, user, session, logout };
 };

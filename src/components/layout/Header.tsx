@@ -9,8 +9,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Header = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast.error('Erro ao sair da conta');
+      } else {
+        toast.success('Logout realizado com sucesso');
+        navigate('/login');
+      }
+    } catch (error) {
+      toast.error('Erro ao sair da conta');
+    }
+  };
+
   return (
     <header className="border-b bg-card">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
@@ -61,7 +80,7 @@ const Header = () => {
               <DropdownMenuItem>Perfil</DropdownMenuItem>
               <DropdownMenuItem>Configurações</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Sair</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>Sair</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
