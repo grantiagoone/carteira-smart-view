@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Google } from 'lucide-react';
+import { LuGoogle } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -78,7 +78,7 @@ const Login = () => {
             className="w-full"
             onClick={handleGoogleLogin}
           >
-            <Google className="mr-2 h-4 w-4" />
+            <LuGoogle className="mr-2 h-4 w-4" />
             Entrar com Google
           </Button>
           
