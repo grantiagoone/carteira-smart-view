@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nome deve ter pelo menos 2 caracteres" }),
@@ -26,6 +27,7 @@ const formSchema = z.object({
 const Register = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -37,19 +39,34 @@ const Register = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Store the user data in localStorage
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const userExists = users.some((user: any) => user.email === values.email);
+    setIsLoading(true);
+    try {
+      // Registrar usuário no Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            name: values.name,
+          },
+        }
+      });
 
-    if (userExists) {
-      toast.error("Email já cadastrado");
-      return;
+      if (error) {
+        toast.error(error.message || "Erro ao criar conta");
+        console.error(error);
+        setIsLoading(false);
+        return;
+      }
+
+      toast.success("Cadastro realizado com sucesso!");
+      navigate("/");
+    } catch (error) {
+      console.error("Erro ao cadastrar:", error);
+      toast.error("Ocorreu um erro ao criar a conta");
+    } finally {
+      setIsLoading(false);
     }
-
-    users.push(values);
-    localStorage.setItem("users", JSON.stringify(users));
-    toast.success("Cadastro realizado com sucesso!");
-    navigate("/login");
   };
 
   return (
@@ -125,9 +142,13 @@ const Register = () => {
               )}
             />
 
-            <Button type="submit" className="w-full">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Criar conta
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Criando conta..." : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Criar conta
+                </>
+              )}
             </Button>
           </form>
         </Form>

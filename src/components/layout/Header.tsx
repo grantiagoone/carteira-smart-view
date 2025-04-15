@@ -10,22 +10,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast.error('Erro ao sair da conta');
-      } else {
+      const success = await logout();
+      if (success) {
         toast.success('Logout realizado com sucesso');
-        navigate('/login');
+      } else {
+        toast.error('Erro ao sair da conta');
       }
     } catch (error) {
+      console.error(error);
       toast.error('Erro ao sair da conta');
     }
   };

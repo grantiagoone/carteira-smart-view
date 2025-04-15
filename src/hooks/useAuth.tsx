@@ -8,6 +8,7 @@ export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export const useAuth = () => {
         setSession(session);
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
+        setIsLoading(false);
         
         if (!session && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
           navigate('/login');
@@ -29,6 +31,7 @@ export const useAuth = () => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsAuthenticated(!!session);
+      setIsLoading(false);
       
       if (!session && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
         navigate('/login');
@@ -51,5 +54,5 @@ export const useAuth = () => {
     return true;
   };
 
-  return { isAuthenticated, user, session, logout };
+  return { isAuthenticated, user, session, logout, isLoading };
 };
