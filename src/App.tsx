@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Portfolios from "./pages/Portfolios";
 import NewPortfolio from "./pages/NewPortfolio";
+import PortfolioDetail from "./pages/PortfolioDetail";
+import PortfolioEdit from "./pages/PortfolioEdit";
 import Strategies from "./pages/Strategies";
 import Contributions from "./pages/Contributions";
 import NewContribution from "./pages/NewContribution";
@@ -15,7 +17,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
-import ResetPassword from "./pages/ResetPassword"; // Nova importação
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -29,9 +31,11 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} /> {/* Nova rota */}
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/portfolios" element={<Portfolios />} />
           <Route path="/portfolio/new" element={<NewPortfolio />} />
+          <Route path="/portfolio/:id" element={<PortfolioDetail />} />
+          <Route path="/portfolio/:id/edit" element={<PortfolioEdit />} />
           <Route path="/strategies" element={<Strategies />} />
           <Route path="/contributions" element={<Contributions />} />
           <Route path="/contribution/new" element={<NewContribution />} />
