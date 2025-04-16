@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -5,24 +6,57 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Mail } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
+    setIsLoading(false);
     if (error) {
       toast.error('Email ou senha inválidos');
     } else {
       toast.success('Login realizado com sucesso!');
       navigate('/');
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsResetting(true);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    
+    setIsResetting(false);
+    if (error) {
+      toast.error('Erro ao enviar email de recuperação');
+      console.error(error);
+    } else {
+      toast.success('Email de recuperação enviado com sucesso!');
+      setResetPasswordOpen(false);
     }
   };
 
@@ -58,7 +92,19 @@ const Login = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <Button type="submit" className="w-full">Entrar</Button>
+          <div className="flex justify-end">
+            <Button 
+              type="button" 
+              variant="link" 
+              className="p-0 h-auto text-sm"
+              onClick={() => setResetPasswordOpen(true)}
+            >
+              Esqueceu sua senha?
+            </Button>
+          </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Entrando..." : "Entrar"}
+          </Button>
           
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
@@ -91,6 +137,40 @@ const Login = () => {
           </Button>
         </form>
       </div>
+
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recuperação de senha</DialogTitle>
+            <DialogDescription>
+              Digite seu email para receber um link de recuperação de senha.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleResetPassword}>
+            <div className="space-y-4 py-4">
+              <Input 
+                type="email" 
+                placeholder="Email" 
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setResetPasswordOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isResetting}>
+                {isResetting ? "Enviando..." : "Enviar link de recuperação"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
