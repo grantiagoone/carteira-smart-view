@@ -1,8 +1,52 @@
 
-import { TrendingUp, TrendingDown, Wallet, DollarSign, Target, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, DollarSign, Target, AlertTriangle, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const PortfolioSummary = () => {
+  const [hasPortfolios, setHasPortfolios] = useState(false);
+  
+  useEffect(() => {
+    // Check if there are portfolios in localStorage
+    const savedPortfolios = localStorage.getItem('portfolios');
+    if (savedPortfolios) {
+      try {
+        const portfolios = JSON.parse(savedPortfolios);
+        setHasPortfolios(portfolios && portfolios.length > 0);
+      } catch (error) {
+        console.error("Erro ao carregar carteiras:", error);
+        setHasPortfolios(false);
+      }
+    } else {
+      setHasPortfolios(false);
+    }
+  }, []);
+
+  if (!hasPortfolios) {
+    return (
+      <Card className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200">
+        <CardContent className="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <div className="bg-primary/10 rounded-full p-4 mb-4">
+            <Wallet className="h-12 w-12 text-primary" />
+          </div>
+          <h3 className="text-2xl font-bold mb-2">Nenhuma carteira encontrada</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            Você ainda não adicionou nenhuma carteira de investimentos. 
+            Adicione sua primeira carteira para começar a acompanhar seus investimentos.
+          </p>
+          <Button asChild size="lg">
+            <Link to="/portfolio/new" className="flex items-center">
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar Carteira
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
       <Card className="gradient-card">

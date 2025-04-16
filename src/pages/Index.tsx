@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,24 @@ import WelcomeModal from "@/components/modals/WelcomeModal";
 
 const Index = () => {
   const [showWelcome, setShowWelcome] = useState(true);
+  const [hasPortfolios, setHasPortfolios] = useState(false);
   
+  useEffect(() => {
+    // Check if there are portfolios in localStorage
+    const savedPortfolios = localStorage.getItem('portfolios');
+    if (savedPortfolios) {
+      try {
+        const portfolios = JSON.parse(savedPortfolios);
+        setHasPortfolios(portfolios && portfolios.length > 0);
+      } catch (error) {
+        console.error("Erro ao carregar carteiras:", error);
+        setHasPortfolios(false);
+      }
+    } else {
+      setHasPortfolios(false);
+    }
+  }, []);
+
   return (
     <DashboardLayout>
       {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
@@ -30,70 +47,76 @@ const Index = () => {
               Nova Carteira
             </Link>
           </Button>
-          <Button asChild>
-            <Link to="/contribution/new">
-              <DollarSign className="mr-2 h-4 w-4" />
-              Novo Aporte
-            </Link>
-          </Button>
+          {hasPortfolios && (
+            <Button asChild>
+              <Link to="/contribution/new">
+                <DollarSign className="mr-2 h-4 w-4" />
+                Novo Aporte
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
       
       <PortfolioSummary />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <Card className="gradient-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">Alocação Atual</CardTitle>
-            <ChartPie className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent className="pt-4">
-            <AllocationChart 
-              data={[
-                { name: 'Ações', value: 35, color: '#1E40AF' },
-                { name: 'FIIs', value: 25, color: '#0D9488' },
-                { name: 'Renda Fixa', value: 30, color: '#F59E0B' },
-                { name: 'Internacional', value: 10, color: '#6B7280' }
-              ]} 
-            />
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" asChild>
-              <Link to="/portfolios">Ver Detalhes</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+      {hasPortfolios ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <Card className="gradient-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-medium">Alocação Atual</CardTitle>
+                <ChartPie className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent className="pt-4">
+                <AllocationChart 
+                  data={[
+                    { name: 'Ações', value: 35, color: '#1E40AF' },
+                    { name: 'FIIs', value: 25, color: '#0D9488' },
+                    { name: 'Renda Fixa', value: 30, color: '#F59E0B' },
+                    { name: 'Internacional', value: 10, color: '#6B7280' }
+                  ]} 
+                />
+              </CardContent>
+              <CardFooter>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/portfolios">Ver Detalhes</Link>
+                </Button>
+              </CardFooter>
+            </Card>
 
-        <Card className="gradient-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">Desempenho por Classe</CardTitle>
-            <BarChart3 className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent className="pt-4">
-            <AssetClassPerformance />
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" asChild>
-              <Link to="/performance">Análise Detalhada</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+            <Card className="gradient-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-medium">Desempenho por Classe</CardTitle>
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent className="pt-4">
+                <AssetClassPerformance />
+              </CardContent>
+              <CardFooter>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/performance">Análise Detalhada</Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
 
-      <Card className="gradient-card mb-6">
-        <CardHeader>
-          <CardTitle>Aportes Recentes</CardTitle>
-          <CardDescription>Veja seus últimos aportes e as alocações sugeridas</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RecentContributionsList />
-        </CardContent>
-        <CardFooter>
-          <Button variant="outline" className="w-full" asChild>
-            <Link to="/contributions">Ver Todos</Link>
-          </Button>
-        </CardFooter>
-      </Card>
+          <Card className="gradient-card mb-6">
+            <CardHeader>
+              <CardTitle>Aportes Recentes</CardTitle>
+              <CardDescription>Veja seus últimos aportes e as alocações sugeridas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RecentContributionsList />
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="w-full" asChild>
+                <Link to="/contributions">Ver Todos</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        </>
+      ) : null}
     </DashboardLayout>
   );
 };
