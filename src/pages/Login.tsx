@@ -74,9 +74,15 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md p-6 space-y-6 bg-card rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1A3B58] to-[#123047]">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl">
+        <div className="text-center space-y-2">
+          <h2 className="text-3xl font-bold text-white">Bem-vindo</h2>
+          <p className="text-gray-300">
+            Faça login para acessar sua conta
+          </p>
+        </div>
+
         <form onSubmit={handleLogin} className="space-y-4">
           <Input 
             type="email" 
@@ -84,6 +90,7 @@ const Login = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            className="bg-white/20 border-white/30 text-white placeholder:text-gray-400"
           />
           <Input 
             type="password" 
@@ -91,27 +98,32 @@ const Login = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="bg-white/20 border-white/30 text-white placeholder:text-gray-400"
           />
           <div className="flex justify-end">
             <Button 
               type="button" 
               variant="link" 
-              className="p-0 h-auto text-sm"
+              className="p-0 h-auto text-sm text-[#4CC38A] hover:text-[#5CD99A]"
               onClick={() => setResetPasswordOpen(true)}
             >
               Esqueceu sua senha?
             </Button>
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            className="w-full bg-[#4CC38A] hover:bg-[#5CD99A] text-white" 
+            disabled={isLoading}
+          >
             {isLoading ? "Entrando..." : "Entrar"}
           </Button>
           
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+              <span className="w-full border-t border-white/20" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
+              <span className="bg-[#1A3B58] px-2 text-gray-400">
                 Ou continue com
               </span>
             </div>
@@ -120,7 +132,7 @@ const Login = () => {
           <Button 
             type="button" 
             variant="outline" 
-            className="w-full"
+            className="w-full border-white/30 text-white hover:bg-white/20"
             onClick={handleGoogleLogin}
           >
             <Mail className="mr-2 h-4 w-4" />
@@ -130,7 +142,7 @@ const Login = () => {
           <Button 
             type="button" 
             variant="outline" 
-            className="w-full"
+            className="w-full border-white/30 text-white hover:bg-white/20"
             onClick={() => navigate('/register')}
           >
             Criar conta
@@ -139,10 +151,10 @@ const Login = () => {
       </div>
 
       <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
-        <DialogContent>
+        <DialogContent className="bg-[#1A3B58] text-white border-white/20">
           <DialogHeader>
             <DialogTitle>Recuperação de senha</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-gray-300">
               Digite seu email para receber um link de recuperação de senha.
             </DialogDescription>
           </DialogHeader>
@@ -154,17 +166,23 @@ const Login = () => {
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
                 required
+                className="bg-white/20 border-white/30 text-white placeholder:text-gray-400"
               />
             </div>
             <DialogFooter>
               <Button 
                 type="button" 
-                variant="outline" 
+                variant="outline"
+                className="border-white/30 text-white hover:bg-white/20"
                 onClick={() => setResetPasswordOpen(false)}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isResetting}>
+              <Button 
+                type="submit" 
+                disabled={isResetting}
+                className="bg-[#4CC38A] hover:bg-[#5CD99A]"
+              >
                 {isResetting ? "Enviando..." : "Enviar link de recuperação"}
               </Button>
             </DialogFooter>
