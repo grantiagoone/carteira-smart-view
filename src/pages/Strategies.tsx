@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,8 +8,11 @@ import AllocationChart from "@/components/charts/AllocationChart";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Strategies = () => {
+  const navigate = useNavigate();
   const [allocation, setAllocation] = useState({
     stocks: 35,
     reits: 25,
@@ -60,6 +64,83 @@ const Strategies = () => {
     { name: 'Renda Fixa', value: allocation.fixedIncome, color: '#F59E0B' },
     { name: 'Internacional', value: allocation.international, color: '#6B7280' }
   ];
+  
+  const handleSaveStrategy = async () => {
+    try {
+      // Get active portfolio from localStorage or create default if none exists
+      const portfolios = JSON.parse(localStorage.getItem('portfolios') || '[]');
+      const activePortfolio = portfolios.length > 0 ? portfolios[portfolios.length - 1] : null;
+      
+      if (!activePortfolio) {
+        toast.error("Nenhuma carteira encontrada. Por favor, crie uma carteira primeiro.");
+        navigate("/portfolio/new");
+        return;
+      }
+      
+      // Update the active portfolio with new allocation
+      const updatedPortfolio = {
+        ...activePortfolio,
+        allocationData: chartData
+      };
+      
+      // Update portfolios in localStorage
+      const updatedPortfolios = portfolios.map((p: any) => 
+        p.id === updatedPortfolio.id ? updatedPortfolio : p
+      );
+      localStorage.setItem('portfolios', JSON.stringify(updatedPortfolios));
+      
+      // Save to strategy history
+      const historyEntry = {
+        date: new Date().toISOString(),
+        allocation: chartData
+      };
+      
+      const strategyHistory = JSON.parse(localStorage.getItem('strategyHistory') || '[]');
+      strategyHistory.unshift(historyEntry); // Add to start of array
+      localStorage.setItem('strategyHistory', JSON.stringify(strategyHistory));
+      
+      // Show success message
+      toast.success("Estratégia salva com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar estratégia:", error);
+      toast.error("Erro ao salvar a estratégia. Por favor, tente novamente.");
+    }
+  };
+  
+  // Function to apply pre-made strategy templates
+  const applyStrategyTemplate = (templateType: string) => {
+    let newAllocation = { ...allocation };
+    
+    switch(templateType) {
+      case 'conservative':
+        newAllocation = {
+          stocks: 20,
+          reits: 15,
+          fixedIncome: 60,
+          international: 5
+        };
+        break;
+      case 'moderate':
+        newAllocation = {
+          stocks: 40,
+          reits: 20,
+          fixedIncome: 30,
+          international: 10
+        };
+        break;
+      case 'aggressive':
+        newAllocation = {
+          stocks: 60,
+          reits: 15,
+          fixedIncome: 10,
+          international: 15
+        };
+        break;
+    }
+    
+    setAllocation(newAllocation);
+    toast.info("Modelo de estratégia aplicado. Não esqueça de salvar!");
+  };
 
   return (
     <DashboardLayout>
@@ -153,7 +234,7 @@ const Strategies = () => {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline">Cancelar</Button>
-                <Button>Salvar Estratégia</Button>
+                <Button onClick={handleSaveStrategy}>Salvar Estratégia</Button>
               </CardFooter>
             </Card>
             
@@ -196,7 +277,7 @@ const Strategies = () => {
                 />
               </CardContent>
               <CardFooter>
-                <Button className="w-full">Aplicar Modelo</Button>
+                <Button className="w-full" onClick={() => applyStrategyTemplate('conservative')}>Aplicar Modelo</Button>
               </CardFooter>
             </Card>
             
@@ -218,7 +299,7 @@ const Strategies = () => {
                 />
               </CardContent>
               <CardFooter>
-                <Button className="w-full">Aplicar Modelo</Button>
+                <Button className="w-full" onClick={() => applyStrategyTemplate('moderate')}>Aplicar Modelo</Button>
               </CardFooter>
             </Card>
             
@@ -240,7 +321,7 @@ const Strategies = () => {
                 />
               </CardContent>
               <CardFooter>
-                <Button className="w-full">Aplicar Modelo</Button>
+                <Button className="w-full" onClick={() => applyStrategyTemplate('aggressive')}>Aplicar Modelo</Button>
               </CardFooter>
             </Card>
           </div>
@@ -256,20 +337,42 @@ const Strategies = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Atualização de Estratégia</p>
-                    <p className="text-sm text-muted-foreground">15/04/2025</p>
-                  </div>
-                  <Button variant="outline" size="sm">Visualizar</Button>
-                </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Estratégia Inicial</p>
-                    <p className="text-sm text-muted-foreground">01/04/2025</p>
-                  </div>
-                  <Button variant="outline" size="sm">Visualizar</Button>
-                </div>
+                {(() => {
+                  const strategyHistory = JSON.parse(localStorage.getItem('strategyHistory') || '[]');
+                  if (strategyHistory.length === 0) {
+                    return (
+                      <div className="text-center p-6">
+                        <p className="text-muted-foreground">Nenhum histórico de alteração encontrado.</p>
+                      </div>
+                    );
+                  }
+                  
+                  return strategyHistory.map((entry: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <p className="font-medium">Atualização de Estratégia</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(entry.date).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setAllocation({
+                            stocks: entry.allocation.find((a: any) => a.name === 'Ações')?.value || 0,
+                            reits: entry.allocation.find((a: any) => a.name === 'FIIs')?.value || 0,
+                            fixedIncome: entry.allocation.find((a: any) => a.name === 'Renda Fixa')?.value || 0,
+                            international: entry.allocation.find((a: any) => a.name === 'Internacional')?.value || 0,
+                          });
+                          toast.info("Estratégia carregada. Vá para a aba 'Personalizada' para visualizar.");
+                        }}
+                      >
+                        Visualizar
+                      </Button>
+                    </div>
+                  ));
+                })()}
               </div>
             </CardContent>
           </Card>
