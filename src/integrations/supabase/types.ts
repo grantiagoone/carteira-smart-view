@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      contributions: {
+        Row: {
+          allocations: Json | null
+          amount: number
+          created_at: string | null
+          date: string | null
+          id: string
+          portfolio_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          allocations?: Json | null
+          amount: number
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          portfolio_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          allocations?: Json | null
+          amount?: number
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          portfolio_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contributions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       DataLog: {
         Row: {
           created_at: string
@@ -21,6 +62,80 @@ export type Database = {
         Update: {
           created_at?: string
           id?: number
+        }
+        Relationships: []
+      }
+      portfolio_assets: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          portfolio_id: string | null
+          price: number | null
+          quantity: number | null
+          ticker: string
+          type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          portfolio_id?: string | null
+          price?: number | null
+          quantity?: number | null
+          ticker: string
+          type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          portfolio_id?: string | null
+          price?: number | null
+          quantity?: number | null
+          ticker?: string
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_assets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolios: {
+        Row: {
+          allocation_data: Json
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          allocation_data?: Json
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          allocation_data?: Json
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
