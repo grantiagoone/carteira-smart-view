@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +9,6 @@ import Portfolios from "./pages/Portfolios";
 import NewPortfolio from "./pages/NewPortfolio";
 import PortfolioDetail from "./pages/PortfolioDetail";
 import PortfolioEdit from "./pages/PortfolioEdit";
-import Strategies from "./pages/Strategies";
 import Contributions from "./pages/Contributions";
 import NewContribution from "./pages/NewContribution";
 import Rebalance from "./pages/Rebalance";
@@ -39,7 +39,6 @@ function App() {
             <Route path="/portfolio/new" element={<NewPortfolio />} />
             <Route path="/portfolio/:id" element={<PortfolioDetail />} />
             <Route path="/portfolio/:id/edit" element={<PortfolioEdit />} />
-            <Route path="/strategies" element={<Strategies />} />
             <Route path="/contributions" element={<Contributions />} />
             <Route path="/contribution/new" element={<NewContribution />} />
             <Route path="/rebalance" element={<Rebalance />} />

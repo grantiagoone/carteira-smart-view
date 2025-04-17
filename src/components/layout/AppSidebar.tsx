@@ -4,7 +4,6 @@ import {
   DollarSign, 
   LayoutDashboard, 
   Wallet, 
-  BarChartHorizontal, 
   Settings, 
   Plus 
 } from "lucide-react";
@@ -33,11 +32,6 @@ const menuItems = [
     title: "Carteiras",
     url: "/portfolios",
     icon: Wallet,
-  },
-  {
-    title: "Estratégias",
-    url: "/strategies",
-    icon: BarChartHorizontal,
   },
   {
     title: "Aportes",

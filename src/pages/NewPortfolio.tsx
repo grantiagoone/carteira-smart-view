@@ -173,6 +173,7 @@ const NewPortfolio = () => {
                   updateAllocationItem={updateAllocationItem}
                   removeAllocationItem={removeAllocationItem}
                   addAllocationItem={addAllocationItem}
+                  setAllocationItems={setAllocationItems}
                   totalAllocation={totalAllocation}
                   onNextStep={nextStep}
                 />
