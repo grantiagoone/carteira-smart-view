@@ -156,8 +156,16 @@ const Portfolios = () => {
     }));
   };
 
-  const handleDeletePortfolio = async () => {
+  const handleDeletePortfolio = async (): Promise<boolean> => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        toast.error("Usuário não autenticado");
+        return false;
+      }
+
       const updatedPortfolios = portfolios.filter(p => p.id !== selectedPortfolioId);
       setPortfolios(updatedPortfolios);
       
@@ -168,9 +176,12 @@ const Portfolios = () => {
       }
       
       setViewType("all");
+      
+      return true;
     } catch (error) {
       console.error("Erro ao excluir carteira:", error);
       toast.error("Erro ao excluir carteira");
+      return false;
     }
   };
 
@@ -337,7 +348,10 @@ const Portfolios = () => {
                         </Link>
                       </Button>
                     </div>
-                    <DeletePortfolioDialog onDelete={handleDeletePortfolio} />
+                    <DeletePortfolioDialog 
+                      portfolioId={selectedPortfolioId} 
+                      onDelete={handleDeletePortfolio} 
+                    />
                   </CardFooter>
                 </Card>
 
@@ -452,7 +466,10 @@ const Portfolios = () => {
                         </Link>
                       </Button>
                     </div>
-                    <DeletePortfolioDialog onDelete={() => handleDeletePortfolio()} />
+                    <DeletePortfolioDialog 
+                      portfolioId={portfolio.id} 
+                      onDelete={() => handleDeletePortfolio()} 
+                    />
                   </CardFooter>
                 </Card>
               ))}

@@ -1,3 +1,12 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Portfolio, AllocationItem, allocationItemsToJson } from "@/hooks/portfolio/types";
+import { Asset } from "@/services/brapiService";
+import { useForm, UseFormReturn } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Link } from "react-router-dom";
 import { useParams, useNavigate } from "react-router-dom";
@@ -13,7 +22,6 @@ import AllocationEditor from "@/components/portfolios/edit/AllocationEditor";
 import PortfolioActions from "@/components/portfolios/edit/PortfolioActions";
 import { usePortfolioEdit } from "@/hooks/portfolio/usePortfolioEdit";
 import { useMemo } from "react";
-import { toast } from "sonner";
 
 const PortfolioEdit = () => {
   const { id } = useParams<{ id: string }>();
