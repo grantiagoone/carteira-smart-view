@@ -40,7 +40,7 @@ const PortfolioEdit = () => {
     assetRatings
   );
 
-  const handleDeleteAllocation = (index: number) => {
+  const handleDeleteAllocation = (index: number): Promise<boolean> => {
     if (allocationItems && index >= 0 && index < allocationItems.length) {
       return deleteAllocationItem(index);
     }

@@ -37,7 +37,7 @@ const PortfolioHeader = ({
           {isUpdating ? 'Atualizando...' : 'Atualizar Preços'}
         </Button>
         <Button asChild>
-          <Link to={`/portfolio/${typeof portfolio.id === 'number' ? portfolio.id : Number(portfolio.id)}/edit`}>
+          <Link to={`/portfolio/${typeof portfolio.id === 'number' ? portfolio.id : parseInt(portfolio.id as string)}/edit`}>
             <Edit className="mr-2 h-4 w-4" />
             Editar Carteira
           </Link>

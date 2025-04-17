@@ -187,10 +187,7 @@ export const useRebalancing = (portfolioId?: string) => {
 
   // Clear filtered actions when portfolio changes
   useEffect(() => {
-    return () => {
-      // Clean up when portfolio changes or component unmounts
-      setFilteredActions([]);
-    };
+    setFilteredActions([]);
   }, [portfolioId]);
 
   return {

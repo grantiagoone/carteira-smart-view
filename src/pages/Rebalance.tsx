@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,8 +15,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
 import { toast } from "sonner";
-import { usePortfolio } from "@/hooks/usePortfolio";
-import { Portfolio, AllocationItem } from "@/hooks/portfolio/types";
+import { Portfolio } from "@/hooks/portfolio/types";
 import RebalancingActions from "@/components/rebalancing/RebalancingActions";
 import FilterControls from "@/components/rebalancing/FilterControls";
 import HistoryItem from "@/components/rebalancing/HistoryItem";
@@ -44,10 +42,7 @@ const Rebalance = () => {
   const [currentAllocation, setCurrentAllocation] = useState<{name: string; value: number; color: string; target: number}[]>([]);
   const [targetAllocation, setTargetAllocation] = useState<{name: string; value: number; color: string;}[]>([]);
   
-  // Use the usePortfolio hook to get portfolio details when selectedPortfolioId changes
-  const { portfolio: selectedPortfolio } = usePortfolio(selectedPortfolioId || undefined);
-  
-  // Use the new rebalancing hook
+  // Use the rebalancing hook
   const { 
     isExecuting,
     history,
@@ -91,10 +86,10 @@ const Rebalance = () => {
     };
     
     loadUserData();
-  }, [loadHistory]);
+  }, [loadHistory, selectedPortfolioId]);
 
-  // Memoize the calculation function to prevent recreating it on every render
-  const calculateRebalancing = useCallback((portfolio: Portfolio) => {
+  // Memoize the calculation function
+  const calculateRebalancing = useMemo(() => (portfolio: Portfolio) => {
     if (!portfolio || !portfolio.allocationData) {
       console.log("Portfolio or allocation data is missing");
       return;
@@ -161,49 +156,36 @@ const Rebalance = () => {
     setFilteredActions(actions);
   }, []);
 
-  // Update the rebalancing calculation when the portfolio changes
-  useEffect(() => {
-    if (selectedPortfolio) {
-      calculateRebalancing(selectedPortfolio);
-    }
-  }, [selectedPortfolio, calculateRebalancing]);
-
-  const handlePortfolioChange = useCallback((value: string) => {
+  // Fix for PortfolioPick integration
+  const handlePortfolioChange = (value: string) => {
     setSelectedPortfolioId(value);
-  }, []);
+  };
 
-  const handleUpdateAnalysis = useCallback(() => {
-    if (selectedPortfolio) {
-      calculateRebalancing(selectedPortfolio);
+  const handleUpdateAnalysis = () => {
+    const portfolio = portfolios.find(p => p.id.toString() === selectedPortfolioId);
+    if (portfolio) {
+      calculateRebalancing(portfolio);
       toast.success("Análise de rebalanceamento atualizada");
     }
-  }, [selectedPortfolio, calculateRebalancing]);
+  };
   
-  const handleFiltersChange = useCallback((filters: any) => {
+  const handleFiltersChange = (filters: any) => {
     const filtered = handleFilterChange(rebalanceActions, filters);
     setFilteredActions(filtered);
-  }, [rebalanceActions, handleFilterChange]);
+  };
   
-  const executeRebalancing = useCallback(() => {
-    if (selectedPortfolio && rebalanceActions.some(action => action.diffPercentage !== 0)) {
+  const executeRebalancing = () => {
+    const portfolio = portfolios.find(p => p.id.toString() === selectedPortfolioId);
+    if (portfolio && rebalanceActions.some(action => action.diffPercentage !== 0)) {
       saveRebalancing(
-        selectedPortfolio.id.toString(),
-        selectedPortfolio.name || "Carteira sem nome",
+        portfolio.id.toString(),
+        portfolio.name || "Carteira sem nome",
         rebalanceActions
       );
     } else {
       toast.info("Não há alterações para executar");
     }
-  }, [selectedPortfolio, rebalanceActions, saveRebalancing]);
-
-  // Memoize the allocation charts to prevent unnecessary re-renders
-  const currentAllocationChart = useMemo(() => (
-    <AllocationChart data={currentAllocation} />
-  ), [currentAllocation]);
-
-  const targetAllocationChart = useMemo(() => (
-    <AllocationChart data={targetAllocation} />
-  ), [targetAllocation]);
+  };
 
   // Memoize UI components to prevent re-renders
   const emptyStateUI = useMemo(() => (
@@ -240,6 +222,18 @@ const Rebalance = () => {
       </p>
     </div>
   ), []);
+
+  // Use the findPortfolio function to get the selected portfolio
+  const selectedPortfolio = useMemo(() => {
+    return portfolios.find(p => p.id.toString() === selectedPortfolioId);
+  }, [portfolios, selectedPortfolioId]);
+
+  // Calculate rebalancing when the selected portfolio changes
+  useEffect(() => {
+    if (selectedPortfolio) {
+      calculateRebalancing(selectedPortfolio);
+    }
+  }, [selectedPortfolio, calculateRebalancing]);
 
   if (loading) {
     return (
@@ -295,7 +289,6 @@ const Rebalance = () => {
               Atualizar Análise
             </Button>
             
-            {/* Adicionamos o botão de ações avançadas aqui */}
             <Button 
               onClick={() => setIsDetailsOpen(!isDetailsOpen)}
               variant="secondary"
@@ -305,7 +298,6 @@ const Rebalance = () => {
           </div>
         </div>
         
-        {/* Opções avançadas */}
         <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
           <CollapsibleContent>
             <div className="mt-4">
@@ -325,7 +317,6 @@ const Rebalance = () => {
               </CardDescription>
             </div>
             
-            {/* Adicionamos as ações de rebalanceamento aqui */}
             <RebalancingActions 
               onExecute={executeRebalancing} 
               hasChanges={rebalanceActions.some(action => action.diffPercentage !== 0)}
