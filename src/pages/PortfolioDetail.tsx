@@ -80,12 +80,12 @@ const PortfolioDetail = () => {
   }
 
   // Convert callback types to ensure compatibility
-  const handleDelete = async () => {
+  const handleDelete = async (): Promise<boolean> => {
     const result = await deletePortfolio();
-    return result === undefined ? true : result;
+    return result === undefined ? true : !!result;
   };
 
-  const handleRefreshPrices = async () => {
+  const handleRefreshPrices = async (): Promise<void> => {
     await refreshPrices();
   };
 

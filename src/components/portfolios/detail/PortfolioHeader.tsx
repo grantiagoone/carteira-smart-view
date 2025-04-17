@@ -37,12 +37,15 @@ const PortfolioHeader = ({
           {isUpdating ? 'Atualizando...' : 'Atualizar Preços'}
         </Button>
         <Button asChild>
-          <Link to={`/portfolio/${String(portfolio.id)}/edit`}>
+          <Link to={`/portfolio/${typeof portfolio.id === 'number' ? portfolio.id : Number(portfolio.id)}/edit`}>
             <Edit className="mr-2 h-4 w-4" />
             Editar Carteira
           </Link>
         </Button>
-        <DeletePortfolioDialog portfolioId={String(portfolio.id)} onDelete={onDelete} />
+        <DeletePortfolioDialog 
+          portfolioId={typeof portfolio.id === 'string' ? portfolio.id : String(portfolio.id)} 
+          onDelete={onDelete} 
+        />
       </div>
     </div>
   );
