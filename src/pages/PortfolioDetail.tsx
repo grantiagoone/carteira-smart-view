@@ -1,3 +1,4 @@
+
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,34 +13,33 @@ const PortfolioDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { portfolio, loading, deletePortfolio, refreshPrices, isUpdating } = usePortfolio(id);
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Define loading UI
+  const loadingUI = (
+    <DashboardLayout>
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    </DashboardLayout>
+  );
 
-  if (!portfolio) {
-    return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center h-[50vh]">
-          <Wallet className="h-16 w-16 text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-medium mb-2">Carteira não encontrada</h2>
-          <p className="text-muted-foreground mb-4">A carteira solicitada não foi encontrada</p>
-          <Button asChild>
-            <Link to="/portfolios">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar para Carteiras
-            </Link>
-          </Button>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Define not found UI
+  const notFoundUI = (
+    <DashboardLayout>
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <Wallet className="h-16 w-16 text-muted-foreground mb-4" />
+        <h2 className="text-2xl font-medium mb-2">Carteira não encontrada</h2>
+        <p className="text-muted-foreground mb-4">A carteira solicitada não foi encontrada</p>
+        <Button asChild>
+          <Link to="/portfolios">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar para Carteiras
+          </Link>
+        </Button>
+      </div>
+    </DashboardLayout>
+  );
 
+  // Calculate current allocation (always define this, even if portfolio doesn't exist yet)
   const calculateCurrentAllocation = useMemo(() => {
     if (!portfolio?.assets || portfolio.assets.length === 0) return [];
 
@@ -68,7 +68,17 @@ const PortfolioDetail = () => {
         color: matchingAllocation?.color || '#' + Math.floor(Math.random()*16777215).toString(16)
       };
     });
-  }, [portfolio?.assets, portfolio?.allocationData]);
+  }, [portfolio]);
+
+  // Handle loading state
+  if (loading) {
+    return loadingUI;
+  }
+
+  // Handle not found state
+  if (!portfolio) {
+    return notFoundUI;
+  }
 
   return (
     <DashboardLayout>
@@ -95,7 +105,7 @@ const PortfolioDetail = () => {
               Editar Carteira
             </Link>
           </Button>
-          <DeletePortfolioDialog onDelete={deletePortfolio} />
+          <DeletePortfolioDialog portfolioId={portfolio.id} onDelete={deletePortfolio} />
         </div>
       </div>
 
