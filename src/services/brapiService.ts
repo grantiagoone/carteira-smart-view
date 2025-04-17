@@ -1,7 +1,7 @@
 
 export interface BrapiAssetResponse {
   results?: BrapiAsset[];
-  stocks?: BrapiAsset[];
+  stocks?: BrapiStockItem[];
   indexes?: any[];
   availableSectors?: string[];
   availableStockTypes?: string[];
@@ -17,6 +17,16 @@ export interface BrapiAsset {
   regularMarketPrice: number;
   regularMarketChangePercent: number;
   regularMarketChange: number;
+}
+
+// New interface for the stock item format in the API response
+export interface BrapiStockItem {
+  stock: string;
+  name: string;
+  close: number;
+  change: number;
+  sector: string;
+  type: string;
 }
 
 export interface Asset {
@@ -58,38 +68,36 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     const data: BrapiAssetResponse = await response.json();
     console.log("Resposta da API:", data);
     
-    // Handle new API response structure - the API returns a 'stocks' property
-    // for stock searches and may use different fields for other asset types
-    let apiResults: BrapiAsset[] = [];
+    // Handle different API response formats
+    let assets: Asset[] = [];
     
+    // Handle the results array format (old API format)
     if (data.results && Array.isArray(data.results) && data.results.length > 0) {
-      apiResults = data.results;
-    } else if (data.stocks && Array.isArray(data.stocks) && data.stocks.length > 0) {
-      // Convert the new API format to match our expected format
-      apiResults = data.stocks.map(stock => ({
-        symbol: stock.stock || "",
-        shortName: stock.name || "",
-        longName: stock.name || "",
-        currency: "BRL",
-        regularMarketPrice: stock.close || 0,
-        regularMarketChangePercent: stock.change || 0,
-        regularMarketChange: 0
+      assets = data.results.map(item => ({
+        id: item.symbol,
+        ticker: item.symbol,
+        name: item.longName || item.shortName,
+        price: item.regularMarketPrice,
+        type: determineAssetType(item.symbol),
+        change: item.regularMarketChangePercent
+      }));
+    } 
+    // Handle the stocks array format (new API format)
+    else if (data.stocks && Array.isArray(data.stocks) && data.stocks.length > 0) {
+      assets = data.stocks.map(item => ({
+        id: item.stock,
+        ticker: item.stock,
+        name: item.name,
+        price: item.close,
+        type: determineAssetType(item.stock),
+        change: item.change
       }));
     }
     
-    if (!apiResults || apiResults.length === 0) {
+    if (assets.length === 0) {
       console.log("Nenhum ativo encontrado na resposta da API");
       return [];
     }
-    
-    const assets: Asset[] = apiResults.map(item => ({
-      id: item.symbol,
-      ticker: item.symbol,
-      name: item.longName || item.shortName,
-      price: item.regularMarketPrice,
-      type: determineAssetType(item.symbol),
-      change: item.regularMarketChangePercent
-    }));
     
     console.log("Assets processados:", assets);
     return assets;
