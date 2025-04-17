@@ -19,7 +19,7 @@ export interface BrapiAsset {
   regularMarketChange: number;
 }
 
-// New interface for the stock item format in the API response
+// Interface para o formato de item de ação na resposta da API
 export interface BrapiStockItem {
   stock: string;
   name: string;
@@ -39,6 +39,9 @@ export interface Asset {
   quantity?: number;
 }
 
+// URL base da API BRAPI
+const BASE_URL = "https://brapi.dev/api";
+
 const determineAssetType = (ticker: string): "stock" | "reit" | "fixed_income" | "international" => {
   if (ticker.endsWith("11")) {
     return "reit";
@@ -54,8 +57,9 @@ const determineAssetType = (ticker: string): "stock" | "reit" | "fixed_income" |
 export async function searchAssets(query: string): Promise<Asset[]> {
   try {
     const token = localStorage.getItem('BRAPI_TOKEN');
-    const baseUrl = `https://brapi.dev/api/quote/list?search=${encodeURIComponent(query)}`;
-    const url = token ? `${baseUrl}&token=${token}` : baseUrl;
+    
+    // URL correta com base na documentação
+    const url = `${BASE_URL}/quote/list?search=${encodeURIComponent(query)}${token ? `&token=${token}` : ''}`;
     
     console.log("Realizando busca de ativos com URL:", url);
     
@@ -110,8 +114,9 @@ export async function searchAssets(query: string): Promise<Asset[]> {
 export async function getAssetPrice(ticker: string): Promise<number | null> {
   try {
     const token = localStorage.getItem('BRAPI_TOKEN');
-    const baseUrl = `https://brapi.dev/api/quote/${encodeURIComponent(ticker)}`;
-    const url = token ? `${baseUrl}?token=${token}` : baseUrl;
+    
+    // URL correta com base na documentação
+    const url = `${BASE_URL}/quote/${encodeURIComponent(ticker)}${token ? `?token=${token}` : ''}`;
     
     const response = await fetch(url);
     
