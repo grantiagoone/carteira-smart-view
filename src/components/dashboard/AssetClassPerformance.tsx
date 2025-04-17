@@ -153,9 +153,16 @@ const AssetClassPerformance = ({ portfolioId }: AssetClassPerformanceProps) => {
           radius={[4, 4, 0, 0]} 
           stroke="#10b981"
           fillOpacity={1}
-          fill={(entry) => entry.color}
+          fill="#10b981"
           name="Performance"
-        />
+        >
+          {processedData.map((entry, index) => (
+            <rect 
+              key={`rect-${index}`} 
+              fill={entry.color} 
+            />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
