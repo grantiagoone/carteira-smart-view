@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -120,10 +119,10 @@ const Login = () => {
           
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-white/20" />
+              <span className="w-full border-t border-white/30" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#222] px-2 text-gray-400">
+              <span className="bg-[#222] px-2 text-white/70">
                 Ou continue com
               </span>
             </div>
@@ -132,7 +131,7 @@ const Login = () => {
           <Button 
             type="button" 
             variant="outline" 
-            className="w-full border-white/30 text-white hover:bg-white/20"
+            className="w-full bg-white/20 border-white/30 text-white hover:bg-white/30"
             onClick={handleGoogleLogin}
           >
             <Mail className="mr-2 h-4 w-4" />
@@ -142,7 +141,7 @@ const Login = () => {
           <Button 
             type="button" 
             variant="outline" 
-            className="w-full border-white/30 text-white hover:bg-white/20"
+            className="w-full bg-white/20 border-white/30 text-white hover:bg-white/30"
             onClick={() => navigate('/register')}
           >
             Criar conta
