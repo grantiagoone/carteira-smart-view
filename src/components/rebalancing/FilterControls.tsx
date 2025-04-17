@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,25 @@ const FilterControls = ({ onFilterChange }: FilterControlsProps) => {
   const [showOnlyChanges, setShowOnlyChanges] = useState(true);
   const [sortBy, setSortBy] = useState("difference");
   
-  const handleApplyFilters = () => {
+  const handleApplyFilters = useCallback(() => {
     onFilterChange({
       threshold: threshold[0],
       showOnlyChanges,
       sortBy
     });
-  };
+  }, [threshold, showOnlyChanges, sortBy, onFilterChange]);
+  
+  const handleThresholdChange = useCallback((value: number[]) => {
+    setThreshold(value);
+  }, []);
+  
+  const handleSortByChange = useCallback((value: string) => {
+    setSortBy(value);
+  }, []);
+  
+  const handleShowOnlyChangesChange = useCallback((checked: boolean) => {
+    setShowOnlyChanges(checked);
+  }, []);
   
   return (
     <div className="bg-card shadow-sm rounded-lg border p-4 mb-4">
@@ -35,13 +47,13 @@ const FilterControls = ({ onFilterChange }: FilterControlsProps) => {
             defaultValue={[5]}
             max={20}
             step={1}
-            onValueChange={setThreshold}
+            onValueChange={handleThresholdChange}
           />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="sort-by">Ordenar por</Label>
-          <Select value={sortBy} onValueChange={setSortBy}>
+          <Select value={sortBy} onValueChange={handleSortByChange}>
             <SelectTrigger id="sort-by">
               <SelectValue placeholder="Ordenação" />
             </SelectTrigger>
@@ -59,7 +71,7 @@ const FilterControls = ({ onFilterChange }: FilterControlsProps) => {
             <Switch 
               id="changes-only" 
               checked={showOnlyChanges}
-              onCheckedChange={setShowOnlyChanges}
+              onCheckedChange={handleShowOnlyChangesChange}
             />
             <Label htmlFor="changes-only">Apenas desbalanceados</Label>
           </div>
@@ -73,4 +85,9 @@ const FilterControls = ({ onFilterChange }: FilterControlsProps) => {
   );
 };
 
-export default React.memo(FilterControls);
+// Only rerender when the onFilterChange function reference changes
+function areEqual(prevProps: FilterControlsProps, nextProps: FilterControlsProps) {
+  return prevProps.onFilterChange === nextProps.onFilterChange;
+}
+
+export default React.memo(FilterControls, areEqual);

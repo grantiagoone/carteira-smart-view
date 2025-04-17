@@ -32,6 +32,14 @@ const HistoryItem = ({ item, onView, onRepeat }: HistoryItemProps) => {
     failed: "Falhou"
   };
   
+  const handleView = React.useCallback(() => {
+    onView(item.id);
+  }, [item.id, onView]);
+  
+  const handleRepeat = React.useCallback(() => {
+    onRepeat(item.id);
+  }, [item.id, onRepeat]);
+  
   return (
     <Card className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div className="flex items-center gap-2">
@@ -60,7 +68,7 @@ const HistoryItem = ({ item, onView, onRepeat }: HistoryItemProps) => {
             variant="outline" 
             size="sm" 
             className="h-8 w-8 p-0" 
-            onClick={() => onView(item.id)}
+            onClick={handleView}
           >
             <Eye className="h-4 w-4" />
           </Button>
@@ -68,7 +76,7 @@ const HistoryItem = ({ item, onView, onRepeat }: HistoryItemProps) => {
             variant="outline" 
             size="sm" 
             className="h-8 w-8 p-0"
-            onClick={() => onRepeat(item.id)}
+            onClick={handleRepeat}
           >
             <RotateCw className="h-4 w-4" />
           </Button>
@@ -78,4 +86,16 @@ const HistoryItem = ({ item, onView, onRepeat }: HistoryItemProps) => {
   );
 };
 
-export default React.memo(HistoryItem);
+// Create proper comparator function for React.memo
+function areEqual(prevProps: HistoryItemProps, nextProps: HistoryItemProps) {
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.date === nextProps.item.date &&
+    prevProps.item.portfolio === nextProps.item.portfolio &&
+    prevProps.item.changeCount === nextProps.item.changeCount &&
+    prevProps.item.totalAmount === nextProps.item.totalAmount &&
+    prevProps.item.status === nextProps.item.status
+  );
+}
+
+export default React.memo(HistoryItem, areEqual);

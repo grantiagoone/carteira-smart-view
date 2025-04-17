@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Portfolio } from "@/hooks/portfolio/types";
@@ -36,6 +36,12 @@ export const useRebalancing = (portfolioId?: string) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [history, setHistory] = useState<RebalanceRecord[]>([]);
   const [filteredActions, setFilteredActions] = useState<RebalanceAction[]>([]);
+  const portfolioIdRef = useRef<string | undefined>(portfolioId);
+  
+  // Update the ref when portfolioId changes
+  useEffect(() => {
+    portfolioIdRef.current = portfolioId;
+  }, [portfolioId]);
   
   // Carregar histórico do localStorage
   const loadHistory = useCallback(async () => {
@@ -104,7 +110,7 @@ export const useRebalancing = (portfolioId?: string) => {
       localStorage.setItem(storageKey, JSON.stringify(historyRecords));
       
       // Atualizar estado
-      setHistory([newRebalance, ...history]);
+      setHistory(prevHistory => [newRebalance, ...prevHistory]);
       
       toast.success("Rebalanceamento executado com sucesso!", {
         description: `${relevantActions.length} alterações aplicadas no valor total de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount)}`
@@ -118,7 +124,7 @@ export const useRebalancing = (portfolioId?: string) => {
     } finally {
       setIsExecuting(false);
     }
-  }, [history]);
+  }, []);
   
   // Aplicar filtros às ações de rebalanceamento
   const applyFilters = useCallback((actions: RebalanceAction[], filters: RebalanceFilters) => {
@@ -156,6 +162,8 @@ export const useRebalancing = (portfolioId?: string) => {
   }, []);
   
   const handleFilterChange = useCallback((actions: RebalanceAction[], filters: RebalanceFilters) => {
+    if (!actions) return [];
+    
     const filtered = applyFilters(actions, filters);
     setFilteredActions(filtered);
     return filtered;
@@ -176,6 +184,14 @@ export const useRebalancing = (portfolioId?: string) => {
       // Aqui seria implementada a lógica para repetir o rebalanceamento
     }
   }, [history]);
+
+  // Clear filtered actions when portfolio changes
+  useEffect(() => {
+    return () => {
+      // Clean up when portfolio changes or component unmounts
+      setFilteredActions([]);
+    };
+  }, [portfolioId]);
 
   return {
     isExecuting,
