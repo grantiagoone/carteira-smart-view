@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Asset } from "./AssetSearch";
+import { Asset } from "@/services/brapiService";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";

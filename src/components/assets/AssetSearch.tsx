@@ -1,44 +1,24 @@
+
 import { useState } from "react";
 import { Search, Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-
-export interface Asset {
-  id: string;
-  ticker: string;
-  name: string;
-  price: number;
-  type: "stock" | "reit" | "fixed_income" | "international";
-  change?: number;
-  quantity?: number; // Added quantity property as optional
-}
-
-// Sample asset data (in a real app, this would come from an API)
-const sampleAssets: Asset[] = [
-  { id: "1", ticker: "PETR4", name: "Petrobras PN", price: 38.42, type: "stock", change: 1.2 },
-  { id: "2", ticker: "VALE3", name: "Vale ON", price: 67.80, type: "stock", change: -0.5 },
-  { id: "3", ticker: "BBAS3", name: "Banco do Brasil ON", price: 56.78, type: "stock", change: 0.8 },
-  { id: "4", ticker: "BBDC4", name: "Bradesco PN", price: 15.32, type: "stock", change: -0.3 },
-  { id: "5", ticker: "ITUB4", name: "Itaú Unibanco PN", price: 32.90, type: "stock", change: 0.2 },
-  { id: "6", ticker: "ABEV3", name: "Ambev ON", price: 14.82, type: "stock", change: 1.5 },
-  { id: "7", ticker: "MXRF11", name: "Maxi Renda FII", price: 10.15, type: "reit", change: 0.1 },
-  { id: "8", ticker: "HGLG11", name: "CSHG Logística FII", price: 180.45, type: "reit", change: -0.2 },
-  { id: "9", ticker: "KNRI11", name: "Kinea Renda Imobiliária FII", price: 145.80, type: "reit", change: 0.4 },
-  { id: "10", ticker: "XPLG11", name: "XP Log FII", price: 112.30, type: "reit", change: -0.6 },
-];
+import { Asset, searchAssets } from "@/services/brapiService";
 
 interface AssetSearchProps {
   onAddAsset: (asset: Asset) => void;
   selectedAssets: Asset[];
 }
 
+export { type Asset } from "@/services/brapiService";
+
 export const AssetSearch = ({ onAddAsset, selectedAssets }: AssetSearchProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Asset[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (searchQuery.trim().length === 0) {
       setSearchResults([]);
       return;
@@ -46,21 +26,21 @@ export const AssetSearch = ({ onAddAsset, selectedAssets }: AssetSearchProps) =>
 
     setIsSearching(true);
     
-    // Simulate API call with timeout
-    setTimeout(() => {
-      const results = sampleAssets.filter(
-        asset => 
-          asset.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          asset.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    try {
+      // Usar o serviço BRAPI para buscar dados reais
+      const results = await searchAssets(searchQuery);
       
       setSearchResults(results);
-      setIsSearching(false);
       
       if (results.length === 0) {
         toast("Nenhum ativo encontrado com esse termo");
       }
-    }, 600);
+    } catch (error) {
+      console.error("Erro na busca:", error);
+      toast("Erro ao buscar ativos. Tente novamente.");
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {

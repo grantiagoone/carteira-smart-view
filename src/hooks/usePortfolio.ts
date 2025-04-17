@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { Asset, getAssetPrice } from "@/services/brapiService";
 
 interface AllocationItem {
   name: string;
@@ -9,15 +9,7 @@ interface AllocationItem {
   color: string;
 }
 
-export interface Asset {
-  id: string;
-  ticker: string;
-  name: string;
-  price: number;
-  type: "stock" | "reit" | "fixed_income" | "international";
-  change?: number;
-  quantity?: number;
-}
+export { type Asset } from "@/services/brapiService";
 
 export interface Portfolio {
   id: number;
@@ -40,7 +32,7 @@ export const usePortfolio = (portfolioId: string | undefined) => {
   const [assetRatings, setAssetRatings] = useState<Record<string, number>>({});
   
   useEffect(() => {
-    const fetchPortfolio = () => {
+    const fetchPortfolio = async () => {
       setLoading(true);
       try {
         const savedPortfolios = localStorage.getItem('portfolios');
@@ -54,7 +46,26 @@ export const usePortfolio = (portfolioId: string | undefined) => {
             
             // Initialize selected assets and quantities if they exist
             if (foundPortfolio.assets) {
-              setSelectedAssets([...foundPortfolio.assets]);
+              // Atualizar preços dos ativos
+              const updatedAssets = [...foundPortfolio.assets];
+              
+              for (let i = 0; i < updatedAssets.length; i++) {
+                const asset = updatedAssets[i];
+                // Tentar atualizar o preço do ativo
+                try {
+                  const latestPrice = await getAssetPrice(asset.ticker);
+                  if (latestPrice !== null) {
+                    updatedAssets[i] = {
+                      ...asset,
+                      price: latestPrice
+                    };
+                  }
+                } catch (error) {
+                  console.error(`Erro ao atualizar preço do ativo ${asset.ticker}:`, error);
+                }
+              }
+              
+              setSelectedAssets(updatedAssets);
               
               // Create quantities object from assets
               const quantities: Record<string, number> = {};
