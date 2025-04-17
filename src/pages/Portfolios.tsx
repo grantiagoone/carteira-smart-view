@@ -16,8 +16,33 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 
+// Interface for assets
+interface Asset {
+  id: string;
+  ticker: string;
+  name: string;
+  price: number;
+  type: string;
+  quantity: number;
+}
+
+// Interface for portfolio structure including assets
+interface Portfolio {
+  id: number;
+  name: string;
+  value: number;
+  returnPercentage: number;
+  returnValue: number;
+  allocationData: {
+    name: string;
+    value: number;
+    color: string;
+  }[];
+  assets?: Asset[];
+}
+
 // Dados iniciais de carteiras
-const initialPortfolios = [
+const initialPortfolios: Portfolio[] = [
   {
     id: 1,
     name: "Carteira Principal",
@@ -48,7 +73,7 @@ const initialPortfolios = [
 
 const Portfolios = () => {
   // Estado para armazenar as carteiras
-  const [portfolios, setPortfolios] = useState(initialPortfolios);
+  const [portfolios, setPortfolios] = useState<Portfolio[]>(initialPortfolios);
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<number | null>(null);
   const [viewType, setViewType] = useState<"single" | "all">("single");
   
@@ -82,6 +107,38 @@ const Portfolios = () => {
 
   const handleViewTypeChange = (value: "single" | "all") => {
     setViewType(value);
+  };
+
+  // Group assets by type and calculate their total value
+  const getAssetsByType = (portfolio: Portfolio) => {
+    if (!portfolio.assets || portfolio.assets.length === 0) return [];
+    
+    const assetsByType: Record<string, {total: number, items: Asset[]}> = {};
+    
+    portfolio.assets.forEach(asset => {
+      const type = asset.type || 'other';
+      if (!assetsByType[type]) {
+        assetsByType[type] = { total: 0, items: [] };
+      }
+      
+      const assetValue = asset.price * asset.quantity;
+      assetsByType[type].total += assetValue;
+      assetsByType[type].items.push(asset);
+    });
+    
+    const typeNameMap: Record<string, string> = {
+      'stock': 'Ações',
+      'reit': 'FIIs',
+      'fixed_income': 'Renda Fixa',
+      'international': 'Internacional',
+      'other': 'Outros'
+    };
+    
+    return Object.entries(assetsByType).map(([type, data]) => ({
+      name: typeNameMap[type] || type,
+      total: data.total,
+      items: data.items
+    }));
   };
 
   return (
@@ -223,6 +280,57 @@ const Portfolios = () => {
                     </Button>
                   </CardFooter>
                 </Card>
+
+                {/* Asset list in the selected portfolio */}
+                {selectedPortfolio.assets && selectedPortfolio.assets.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Ativos na Carteira</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {getAssetsByType(selectedPortfolio).map((group, index) => (
+                          <div key={index}>
+                            <h3 className="text-lg font-medium mb-3 flex items-center justify-between">
+                              <span>{group.name}</span>
+                              <span className="text-base font-normal text-muted-foreground">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(group.total)}
+                              </span>
+                            </h3>
+                            <div className="overflow-x-auto">
+                              <table className="w-full border-collapse">
+                                <thead>
+                                  <tr className="bg-muted/50 text-xs uppercase">
+                                    <th className="px-4 py-2 text-left">Ticker</th>
+                                    <th className="px-4 py-2 text-left">Nome</th>
+                                    <th className="px-4 py-2 text-right">Preço</th>
+                                    <th className="px-4 py-2 text-right">Qtd.</th>
+                                    <th className="px-4 py-2 text-right">Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                  {group.items.map((asset) => (
+                                    <tr key={asset.id} className="hover:bg-muted/20">
+                                      <td className="px-4 py-3 text-left font-medium">{asset.ticker}</td>
+                                      <td className="px-4 py-3 text-left">{asset.name}</td>
+                                      <td className="px-4 py-3 text-right">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price)}
+                                      </td>
+                                      <td className="px-4 py-3 text-right">{asset.quantity}</td>
+                                      <td className="px-4 py-3 text-right font-medium">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price * asset.quantity)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Card>
                   <CardHeader>

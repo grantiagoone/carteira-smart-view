@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, Trash, X } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AssetSearch, Asset } from "@/components/assets/AssetSearch";
+import { AssetList } from "@/components/assets/AssetList";
 
 interface AllocationItem {
   name: string;
@@ -36,6 +39,7 @@ interface Portfolio {
   returnPercentage: number;
   returnValue: number;
   allocationData: AllocationItem[];
+  assets?: Asset[];
 }
 
 const formSchema = z.object({
@@ -54,6 +58,8 @@ const PortfolioEdit = () => {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [allocationItems, setAllocationItems] = useState<AllocationItem[]>([]);
+  const [selectedAssets, setSelectedAssets] = useState<Asset[]>([]);
+  const [assetQuantities, setAssetQuantities] = useState<Record<string, number>>({});
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,6 +83,18 @@ const PortfolioEdit = () => {
             setPortfolio(foundPortfolio);
             setAllocationItems([...foundPortfolio.allocationData]);
             
+            // Initialize selected assets and quantities if they exist
+            if (foundPortfolio.assets) {
+              setSelectedAssets([...foundPortfolio.assets]);
+              
+              // Create quantities object from assets
+              const quantities: Record<string, number> = {};
+              foundPortfolio.assets.forEach(asset => {
+                quantities[asset.id] = asset.quantity || 0;
+              });
+              setAssetQuantities(quantities);
+            }
+            
             // Populate form with portfolio data
             form.reset({
               name: foundPortfolio.name,
@@ -84,21 +102,13 @@ const PortfolioEdit = () => {
               returnPercentage: foundPortfolio.returnPercentage.toString(),
             });
           } else {
-            toast({
-              title: "Carteira não encontrada",
-              description: "A carteira solicitada não foi encontrada",
-              variant: "destructive"
-            });
+            toast("Carteira não encontrada");
             navigate("/portfolios");
           }
         }
       } catch (error) {
         console.error("Erro ao carregar carteira:", error);
-        toast({
-          title: "Erro ao carregar carteira",
-          description: "Ocorreu um erro ao tentar carregar os dados da carteira",
-          variant: "destructive"
-        });
+        toast("Erro ao carregar carteira");
       } finally {
         setLoading(false);
       }
@@ -108,6 +118,41 @@ const PortfolioEdit = () => {
       fetchPortfolio();
     }
   }, [id, navigate, form]);
+
+  const handleAddAsset = (asset: Asset) => {
+    // If asset already exists, remove it
+    if (selectedAssets.some(a => a.ticker === asset.ticker)) {
+      setSelectedAssets(selectedAssets.filter(a => a.ticker !== asset.ticker));
+      
+      // Remove quantity data
+      const newQuantities = { ...assetQuantities };
+      delete newQuantities[asset.id];
+      setAssetQuantities(newQuantities);
+      
+      toast(`${asset.ticker} removido da carteira`);
+      return;
+    }
+    
+    // Add the asset
+    setSelectedAssets([...selectedAssets, asset]);
+    toast(`${asset.ticker} adicionado à carteira`);
+  };
+
+  const handleRemoveAsset = (assetId: string) => {
+    setSelectedAssets(selectedAssets.filter(asset => asset.id !== assetId));
+    
+    // Remove quantity data
+    const newQuantities = { ...assetQuantities };
+    delete newQuantities[assetId];
+    setAssetQuantities(newQuantities);
+  };
+
+  const handleUpdateQuantity = (assetId: string, quantity: number) => {
+    setAssetQuantities(prev => ({
+      ...prev,
+      [assetId]: quantity
+    }));
+  };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!portfolio) return;
@@ -119,33 +164,102 @@ const PortfolioEdit = () => {
         const portfolioIndex = portfolios.findIndex(p => p.id === Number(id));
         
         if (portfolioIndex !== -1) {
+          // Calculate total portfolio value from assets if any are present
+          let totalValue = Number(values.value);
+          
+          // Process assets for saving, adding the quantity info
+          const updatedAssets = selectedAssets.map(asset => ({
+            ...asset,
+            quantity: assetQuantities[asset.id] || 0
+          }));
+          
+          // Calculate value from assets if there are any with quantities
+          if (updatedAssets.some(a => a.quantity > 0)) {
+            totalValue = updatedAssets.reduce((sum, asset) => {
+              return sum + (asset.price * (assetQuantities[asset.id] || 0));
+            }, 0);
+          }
+          
+          // Calculate allocation data based on assets
+          const assetsByType: Record<string, number> = {};
+          
+          updatedAssets.forEach(asset => {
+            const quantity = assetQuantities[asset.id] || 0;
+            const assetValue = asset.price * quantity;
+            
+            if (assetValue > 0) {
+              assetsByType[asset.type] = (assetsByType[asset.type] || 0) + assetValue;
+            }
+          });
+          
+          let updatedAllocation = [...allocationItems];
+          
+          // If we have assets with values, generate allocation data from them
+          if (Object.values(assetsByType).some(v => v > 0)) {
+            updatedAllocation = Object.entries(assetsByType).map(([type, value]) => {
+              const percentage = totalValue > 0 ? (value / totalValue) * 100 : 0;
+              
+              // Find existing allocation item with the same name or create new one
+              const existingItem = allocationItems.find(item => {
+                const typeNameMap: Record<string, string> = {
+                  "stock": "Ações",
+                  "reit": "FIIs",
+                  "fixed_income": "Renda Fixa",
+                  "international": "Internacional"
+                };
+                return item.name === (typeNameMap[type] || type);
+              });
+              
+              if (existingItem) {
+                return {
+                  ...existingItem,
+                  value: Math.round(percentage)
+                };
+              }
+              
+              const colorMap: Record<string, string> = {
+                "stock": "#ea384c",
+                "reit": "#0D9488",
+                "fixed_income": "#F59E0B",
+                "international": "#222"
+              };
+              
+              const nameMap: Record<string, string> = {
+                "stock": "Ações",
+                "reit": "FIIs",
+                "fixed_income": "Renda Fixa",
+                "international": "Internacional"
+              };
+              
+              return {
+                name: nameMap[type] || type,
+                value: Math.round(percentage),
+                color: colorMap[type] || "#6B7280"
+              };
+            });
+          }
+
           // Update the portfolio
           portfolios[portfolioIndex] = {
             ...portfolios[portfolioIndex],
             name: values.name,
-            value: Number(values.value),
+            value: totalValue,
             returnPercentage: Number(values.returnPercentage),
-            returnValue: (Number(values.value) * Number(values.returnPercentage)) / 100,
-            allocationData: allocationItems,
+            returnValue: (totalValue * Number(values.returnPercentage)) / 100,
+            allocationData: updatedAllocation,
+            assets: updatedAssets
           };
           
           localStorage.setItem('portfolios', JSON.stringify(portfolios));
           
-          toast({
-            title: "Carteira atualizada",
-            description: "As alterações foram salvas com sucesso",
-          });
+          toast("Carteira atualizada com sucesso");
           
           navigate(`/portfolio/${id}`);
         }
       }
     } catch (error) {
       console.error("Erro ao atualizar carteira:", error);
-      toast({
-        title: "Erro ao atualizar carteira",
-        description: "Ocorreu um erro ao tentar salvar as alterações",
-        variant: "destructive"
-      });
+      toast("Erro ao atualizar carteira");
     }
   };
 
@@ -157,20 +271,13 @@ const PortfolioEdit = () => {
         const updatedPortfolios = portfolios.filter(p => p.id !== Number(id));
         localStorage.setItem('portfolios', JSON.stringify(updatedPortfolios));
         
-        toast({
-          title: "Carteira excluída",
-          description: "A carteira foi excluída com sucesso",
-        });
+        toast("Carteira excluída com sucesso");
         
         navigate("/portfolios");
       }
     } catch (error) {
       console.error("Erro ao excluir carteira:", error);
-      toast({
-        title: "Erro ao excluir carteira",
-        description: "Ocorreu um erro ao tentar excluir a carteira",
-        variant: "destructive"
-      });
+      toast("Erro ao excluir carteira");
     }
   };
 
@@ -316,6 +423,38 @@ const PortfolioEdit = () => {
                     )}
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="mt-6">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Ativos</CardTitle>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button type="button" variant="outline">
+                      Buscar e Adicionar Ativos
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Adicionar Ativos</DialogTitle>
+                      <DialogDescription>
+                        Busque por ticker ou nome do ativo para adicionar à sua carteira
+                      </DialogDescription>
+                    </DialogHeader>
+                    <AssetSearch 
+                      onAddAsset={handleAddAsset} 
+                      selectedAssets={selectedAssets} 
+                    />
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <AssetList 
+                  assets={selectedAssets} 
+                  onRemoveAsset={handleRemoveAsset} 
+                  onUpdateQuantity={handleUpdateQuantity}
+                />
               </CardContent>
             </Card>
 
