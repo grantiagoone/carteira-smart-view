@@ -1,5 +1,5 @@
 
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   Table,
@@ -36,9 +36,10 @@ interface Contribution {
 const RecentContributionsList = () => {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasPortfolios, setHasPortfolios] = useState(false);
 
   useEffect(() => {
-    const loadContributions = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
         // Get current user
@@ -46,6 +47,11 @@ const RecentContributionsList = () => {
         const userId = session?.user?.id;
 
         if (userId) {
+          // Check if user has any portfolios
+          const portfoliosData = localStorage.getItem(`portfolios_${userId}`);
+          const hasUserPortfolios = portfoliosData && JSON.parse(portfoliosData).length > 0;
+          setHasPortfolios(hasUserPortfolios);
+          
           // Load user-specific contributions
           const userContributions = localStorage.getItem(`contributions_${userId}`);
           if (userContributions) {
@@ -54,17 +60,19 @@ const RecentContributionsList = () => {
             setContributions([]);
           }
         } else {
+          setHasPortfolios(false);
           setContributions([]);
         }
       } catch (error) {
         console.error("Error loading contributions:", error);
         setContributions([]);
+        setHasPortfolios(false);
       } finally {
         setLoading(false);
       }
     };
 
-    loadContributions();
+    loadData();
   }, []);
 
   if (loading) {
@@ -79,9 +87,21 @@ const RecentContributionsList = () => {
     return (
       <div className="text-center py-6">
         <p className="text-muted-foreground">Nenhum aporte encontrado.</p>
-        <Button variant="outline" className="mt-4" asChild>
-          <Link to="/contribution/new">Criar Novo Aporte</Link>
-        </Button>
+        {hasPortfolios ? (
+          <Button variant="outline" className="mt-4" asChild>
+            <Link to="/contribution/new">Criar Novo Aporte</Link>
+          </Button>
+        ) : (
+          <div className="mt-4 space-y-2">
+            <p className="text-sm">Você precisa criar uma carteira primeiro</p>
+            <Button variant="outline" asChild>
+              <Link to="/portfolio/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Criar Carteira
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
     );
   }

@@ -1,80 +1,60 @@
 
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, ChevronDown, ArrowRight } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface Contribution {
+  id: number;
+  date: string;
+  portfolio: string;
+  amount: string;
+  status: string;
+  allocations: {
+    asset: string;
+    class: string;
+    value: string;
+  }[];
+}
 
 const Contributions = () => {
-  const contributions = [
-    {
-      id: 1,
-      date: "15/04/2025",
-      portfolio: "Carteira Principal",
-      amount: "R$ 2.000,00",
-      status: "Alocado",
-      allocations: [
-        { asset: "PETR4", class: "Ações", value: "R$ 600,00" },
-        { asset: "MXRF11", class: "FIIs", value: "R$ 500,00" },
-        { asset: "Tesouro IPCA+", class: "Renda Fixa", value: "R$ 700,00" },
-        { asset: "IVVB11", class: "Internacional", value: "R$ 200,00" },
-      ]
-    },
-    {
-      id: 2,
-      date: "01/04/2025",
-      portfolio: "Aposentadoria",
-      amount: "R$ 1.500,00",
-      status: "Alocado",
-      allocations: [
-        { asset: "ITSA4", class: "Ações", value: "R$ 375,00" },
-        { asset: "KNRI11", class: "FIIs", value: "R$ 375,00" },
-        { asset: "CDB", class: "Renda Fixa", value: "R$ 600,00" },
-        { asset: "IVVB11", class: "Internacional", value: "R$ 150,00" },
-      ]
-    },
-    {
-      id: 3,
-      date: "15/03/2025",
-      portfolio: "Carteira Principal",
-      amount: "R$ 2.000,00",
-      status: "Alocado",
-      allocations: [
-        { asset: "WEGE3", class: "Ações", value: "R$ 600,00" },
-        { asset: "HGLG11", class: "FIIs", value: "R$ 500,00" },
-        { asset: "LCI", class: "Renda Fixa", value: "R$ 700,00" },
-        { asset: "IVVB11", class: "Internacional", value: "R$ 200,00" },
-      ]
-    },
-    {
-      id: 4,
-      date: "01/03/2025",
-      portfolio: "Aposentadoria",
-      amount: "R$ 1.500,00",
-      status: "Alocado",
-      allocations: [
-        { asset: "BBAS3", class: "Ações", value: "R$ 375,00" },
-        { asset: "XPLG11", class: "FIIs", value: "R$ 375,00" },
-        { asset: "LCA", class: "Renda Fixa", value: "R$ 600,00" },
-        { asset: "HASH11", class: "Internacional", value: "R$ 150,00" },
-      ]
-    },
-  ];
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadContributions = async () => {
+      setLoading(true);
+      try {
+        // Get current user
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+
+        if (userId) {
+          // Load user-specific contributions
+          const userContributions = localStorage.getItem(`contributions_${userId}`);
+          if (userContributions) {
+            setContributions(JSON.parse(userContributions));
+          } else {
+            setContributions([]);
+          }
+        } else {
+          setContributions([]);
+        }
+      } catch (error) {
+        console.error("Error loading contributions:", error);
+        toast("Erro ao carregar aportes");
+        setContributions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContributions();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -99,81 +79,81 @@ const Contributions = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Carteira</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contributions.map((contribution) => (
-                <Collapsible key={contribution.id} asChild>
-                  <>
-                    <TableRow>
-                      <TableCell>{contribution.date}</TableCell>
-                      <TableCell>{contribution.portfolio}</TableCell>
-                      <TableCell className="text-right font-medium">{contribution.amount}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">
+          {loading ? (
+            <div className="w-full text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            </div>
+          ) : contributions.length > 0 ? (
+            // Render the existing table with contributions data
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4">Data</th>
+                    <th className="text-left py-3 px-4">Carteira</th>
+                    <th className="text-right py-3 px-4">Valor</th>
+                    <th className="text-left py-3 px-4">Status</th>
+                    <th className="text-right py-3 px-4">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contributions.map((contribution) => (
+                    <tr key={contribution.id} className="border-b">
+                      <td className="py-3 px-4">{contribution.date}</td>
+                      <td className="py-3 px-4">{contribution.portfolio}</td>
+                      <td className="py-3 px-4 text-right font-medium">{contribution.amount}</td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           {contribution.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <ChevronDown className="h-4 w-4" />
-                              <span className="sr-only">Detalhes</span>
-                            </Button>
-                          </CollapsibleTrigger>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/contribution/${contribution.id}`}>
-                              <ArrowRight className="h-4 w-4" />
-                              <span className="sr-only">Ver</span>
-                            </Link>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <CollapsibleContent asChild>
-                      <TableRow className="bg-muted/50">
-                        <TableCell colSpan={5} className="p-0">
-                          <div className="p-4">
-                            <p className="font-medium text-sm mb-2">Alocação Realizada:</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
-                              {contribution.allocations.map((allocation, idx) => (
-                                <div key={idx} className="bg-card p-2 rounded-md border text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{allocation.class}:</span>
-                                    <span className="font-medium">{allocation.value}</span>
-                                  </div>
-                                  <div className="font-medium text-primary">{allocation.asset}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    </CollapsibleContent>
-                  </>
-                </Collapsible>
-              ))}
-            </TableBody>
-          </Table>
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/contribution/${contribution.id}`}>
+                            Ver detalhes
+                          </Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-6">
+                Você ainda não possui aportes registrados.
+              </p>
+              <p className="mb-8">
+                Para começar, primeiro crie uma carteira e depois registre seu primeiro aporte.
+              </p>
+              <div className="flex flex-col gap-4 max-w-xs mx-auto">
+                <Button asChild>
+                  <Link to="/portfolio/new">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Carteira
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to="/contribution/new">
+                    Registrar Aporte
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
-        <CardFooter className="flex justify-between border-t pt-6">
-          <Button variant="outline">Anterior</Button>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="w-8 h-8 p-0">1</Button>
-            <Button variant="outline" size="sm" className="w-8 h-8 p-0 bg-primary text-primary-foreground">2</Button>
-            <Button variant="outline" size="sm" className="w-8 h-8 p-0">3</Button>
-          </div>
-          <Button variant="outline">Próximo</Button>
-        </CardFooter>
+        {contributions.length > 0 && (
+          <CardFooter className="flex justify-between border-t pt-6">
+            <Button variant="outline">Anterior</Button>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" className="w-8 h-8 p-0 bg-primary text-primary-foreground">1</Button>
+              <Button variant="outline" size="sm" className="w-8 h-8 p-0">2</Button>
+              <Button variant="outline" size="sm" className="w-8 h-8 p-0">3</Button>
+            </div>
+            <Button variant="outline">Próximo</Button>
+          </CardFooter>
+        )}
       </Card>
     </DashboardLayout>
   );
