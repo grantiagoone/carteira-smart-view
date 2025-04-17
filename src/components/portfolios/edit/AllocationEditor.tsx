@@ -11,7 +11,7 @@ interface AllocationEditorProps {
   allocationItems: AllocationItem[];
   updateAllocationItem: (index: number, field: keyof AllocationItem, value: string | number) => void;
   addAllocationItem: () => void;
-  deleteAllocationItem: (name: string) => Promise<boolean>;
+  deleteAllocationItem: (index: number) => Promise<boolean> | void;
 }
 
 const AllocationEditor = ({
@@ -67,6 +67,19 @@ const AllocationEditor = ({
     </div>
   ), [totalAllocation]);
 
+  const handleDeleteAllocationItem = (index: number) => {
+    if (typeof deleteAllocationItem === 'function') {
+      if (allocationItems[index]) {
+        const itemName = allocationItems[index].name;
+        if (deleteAllocationItem.length === 1) {
+          return deleteAllocationItem(itemName);
+        } else {
+          return deleteAllocationItem(index);
+        }
+      }
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -121,7 +134,7 @@ const AllocationEditor = ({
                 type="button" 
                 variant="ghost" 
                 size="sm"
-                onClick={() => deleteAllocationItem(item.name)}
+                onClick={() => handleDeleteAllocationItem(index)}
                 className="min-w-[40px] h-10"
               >
                 <X className="h-5 w-5" />

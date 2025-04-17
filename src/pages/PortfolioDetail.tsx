@@ -1,3 +1,4 @@
+
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import AllocationChart from "@/components/charts/AllocationChart";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import DeletePortfolioDialog from "@/components/portfolios/DeletePortfolioDialog";
 import { useMemo } from "react";
+import { calculateRebalancingSuggestions } from "@/hooks/portfolio/types";
 
 const PortfolioDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,7 +49,7 @@ const PortfolioDetail = () => {
     
     portfolio.assets.forEach(asset => {
       const assetValue = asset.price * (asset.quantity || 0);
-      const assetType = asset.type || 'Ações';
+      const assetType = asset.type || 'stock';
       
       if (allocationGroups[assetType]) {
         allocationGroups[assetType] += assetValue;
@@ -188,11 +190,11 @@ const PortfolioDetail = () => {
                             <td className="px-4 py-3 text-left font-medium">{asset.ticker}</td>
                             <td className="px-4 py-3 text-left">{asset.name}</td>
                             <td className="px-4 py-3 text-right">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price)}
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(asset.price))}
                             </td>
                             <td className="px-4 py-3 text-right">{asset.quantity}</td>
                             <td className="px-4 py-3 text-right font-medium">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price * asset.quantity)}
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(asset.price) * asset.quantity)}
                             </td>
                             <td className="px-4 py-3 text-right">
                               {suggestion ? `${suggestion.currentAllocation.toFixed(1)}%` : '-'}

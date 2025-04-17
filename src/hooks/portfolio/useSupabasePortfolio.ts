@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Portfolio, Asset, jsonToAllocationItems, calculatePortfolioValue } from "./types";
+import { Portfolio, Asset, jsonToAllocationItems, calculatePortfolioValue, normalizeAssetType } from "./types";
 import { toast } from "sonner";
 
 export const useSupabasePortfolio = (portfolioId?: string) => {
@@ -36,7 +36,7 @@ export const useSupabasePortfolio = (portfolioId?: string) => {
         id: asset.id,
         ticker: asset.ticker,
         name: asset.name,
-        type: asset.type || '',
+        type: normalizeAssetType(asset.type || 'stock'), // Normalize the asset type
         price: Number(asset.price) || 0,
         quantity: Number(asset.quantity) || 0
       })) || [];
@@ -50,7 +50,7 @@ export const useSupabasePortfolio = (portfolioId?: string) => {
       const returnPercentage = 0;
       const returnValue = 0;
 
-      return {
+      const portfolioObj: Portfolio = {
         id: portfolioData.id,
         name: portfolioData.name,
         value: portfolioValue,
@@ -60,6 +60,8 @@ export const useSupabasePortfolio = (portfolioId?: string) => {
         assets: transformedAssets,
         assetRatings: {} // Default empty ratings
       };
+
+      return portfolioObj;
     } catch (error) {
       console.error('Error fetching portfolio:', error);
       toast.error('Error fetching portfolio');

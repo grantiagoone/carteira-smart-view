@@ -60,7 +60,7 @@ export const usePortfolioEdit = (
           allocation_data: allocationItemsToJson(allocationItems),
           updated_at: new Date().toISOString()
         })
-        .eq('id', portfolio.id);
+        .eq('id', String(portfolio.id)); // Ensure portfolio.id is cast to string
 
       if (portfolioError) throw portfolioError;
 
@@ -70,13 +70,13 @@ export const usePortfolioEdit = (
         const { error: deleteError } = await supabase
           .from('portfolio_assets')
           .delete()
-          .eq('portfolio_id', portfolio.id);
+          .eq('portfolio_id', String(portfolio.id)); // Ensure portfolio.id is cast to string
 
         if (deleteError) throw deleteError;
 
         // Then insert the updated assets
         const portfolioAssets = selectedAssets.map(asset => ({
-          portfolio_id: portfolio.id,
+          portfolio_id: String(portfolio.id), // Ensure portfolio.id is cast to string
           user_id: session.session.user.id,
           ticker: asset.ticker,
           name: asset.name,

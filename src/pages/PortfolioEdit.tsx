@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import { FormProvider } from "react-hook-form";
@@ -41,7 +40,13 @@ const PortfolioEdit = () => {
     assetRatings
   );
 
-  // Memoize the loading state to prevent re-renders
+  const handleDeleteAllocation = (index: number) => {
+    if (allocationItems && index >= 0 && index < allocationItems.length) {
+      return deleteAllocationItem(index);
+    }
+    return Promise.resolve(false);
+  };
+
   const loadingState = useMemo(() => {
     if (loading) {
       return (
@@ -53,7 +58,6 @@ const PortfolioEdit = () => {
     return null;
   }, [loading]);
 
-  // Memoize the not found state to prevent re-renders
   const notFoundState = useMemo(() => {
     if (!portfolio && !loading) {
       return (
@@ -122,7 +126,7 @@ const PortfolioEdit = () => {
               allocationItems={allocationItems}
               updateAllocationItem={updateAllocationItem}
               addAllocationItem={addAllocationItem}
-              deleteAllocationItem={deleteAllocationItem}
+              deleteAllocationItem={handleDeleteAllocation}
             />
             
             <PortfolioActions portfolioId={id || ""} />

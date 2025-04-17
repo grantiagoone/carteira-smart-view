@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface AllocationItem {
@@ -12,7 +11,7 @@ export interface Asset {
   ticker: string;
   name: string;
   price: number;
-  type: 'stock' | 'reit' | 'fixed_income' | 'international';
+  type: 'stock' | 'reit' | 'fixed_income' | 'international' | string;
   quantity: number;
 }
 
@@ -38,13 +37,18 @@ export const jsonToAllocationItems = (json: Json): AllocationItem[] => {
   return json as unknown as AllocationItem[];
 };
 
-// Function to calculate portfolio value from assets
 export const calculatePortfolioValue = (assets: Asset[] | undefined): number => {
   if (!assets || assets.length === 0) return 0;
   return assets.reduce((sum, asset) => sum + (asset.price * asset.quantity), 0);
 };
 
-// Function to calculate rebalancing suggestions
+export const normalizeAssetType = (type: string): 'stock' | 'reit' | 'fixed_income' | 'international' => {
+  if (type === 'stock' || type === 'reit' || type === 'fixed_income' || type === 'international') {
+    return type;
+  }
+  return 'stock'; // Default to stock if the type is unknown
+};
+
 export interface RebalancingSuggestion {
   asset: Asset;
   currentAllocation: number;
@@ -63,7 +67,6 @@ export const calculateRebalancingSuggestions = (
   const totalValue = calculatePortfolioValue(portfolio.assets);
   const suggestions: RebalancingSuggestion[] = [];
 
-  // Map assets to their allocation types
   const assetsByType: Record<string, Asset[]> = {};
   portfolio.assets.forEach(asset => {
     if (!assetsByType[asset.type]) {
@@ -72,20 +75,17 @@ export const calculateRebalancingSuggestions = (
     assetsByType[asset.type].push(asset);
   });
 
-  // Calculate current allocation by type
   const currentAllocation: Record<string, number> = {};
   Object.entries(assetsByType).forEach(([type, assets]) => {
     const typeValue = assets.reduce((sum, asset) => sum + (asset.price * asset.quantity), 0);
     currentAllocation[type] = (typeValue / totalValue) * 100;
   });
 
-  // Create target allocation map
   const targetAllocation: Record<string, number> = {};
   portfolio.allocationData.forEach(item => {
     targetAllocation[item.name] = item.value;
   });
 
-  // Calculate suggestions for each asset
   portfolio.assets.forEach(asset => {
     const assetValue = asset.price * asset.quantity;
     const currentPct = (assetValue / totalValue) * 100;
@@ -109,7 +109,6 @@ export const calculateRebalancingSuggestions = (
   return suggestions;
 };
 
-// Function to calculate contribution suggestions
 export interface ContributionSuggestion {
   asset: Asset;
   amount: number;
@@ -125,7 +124,6 @@ export const calculateContributionSuggestions = (
   const suggestions: ContributionSuggestion[] = [];
   const totalValue = calculatePortfolioValue(portfolio.assets);
 
-  // Map assets by type
   const assetsByType: Record<string, Asset[]> = {};
   portfolio.assets.forEach(asset => {
     if (!assetsByType[asset.type]) {
@@ -134,12 +132,10 @@ export const calculateContributionSuggestions = (
     assetsByType[asset.type].push(asset);
   });
 
-  // Calculate current allocation percentages
   portfolio.allocationData.forEach(allocation => {
     const assetsOfType = assetsByType[allocation.name] || [];
     const amountForType = (allocation.value / 100) * contributionAmount;
     
-    // Distribute amount among assets based on ratings
     assetsOfType.forEach(asset => {
       const rating = portfolio.assetRatings[asset.id] || 5;
       const totalRatings = assetsOfType.reduce((sum, a) => sum + (portfolio.assetRatings[a.id] || 5), 0);
