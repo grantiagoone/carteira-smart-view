@@ -69,10 +69,22 @@ export const useSupabasePortfolio = (portfolioId?: string) => {
     }
   };
 
-  const deletePortfolio = async () => {
+  const deletePortfolio = async (): Promise<boolean> => {
     try {
       if (!portfolioId) return false;
 
+      // Primeiro excluir os ativos associados à carteira
+      const { error: assetsError } = await supabase
+        .from('portfolio_assets')
+        .delete()
+        .eq('portfolio_id', portfolioId);
+
+      if (assetsError) {
+        console.error('Error deleting portfolio assets:', assetsError);
+        throw assetsError;
+      }
+
+      // Depois excluir a carteira
       const { error } = await supabase
         .from('portfolios')
         .delete()
@@ -80,11 +92,11 @@ export const useSupabasePortfolio = (portfolioId?: string) => {
 
       if (error) throw error;
 
-      toast.success('Portfolio deleted successfully');
+      toast.success('Carteira excluída com sucesso');
       return true;
     } catch (error) {
       console.error('Error deleting portfolio:', error);
-      toast.error('Error deleting portfolio');
+      toast.error('Erro ao excluir carteira');
       return false;
     }
   };

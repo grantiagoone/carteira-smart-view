@@ -46,7 +46,7 @@ const PortfolioHeader = ({
           </Link>
         </Button>
         <DeletePortfolioDialog 
-          portfolioId={typeof portfolio.id === 'string' ? portfolio.id : String(portfolio.id)} 
+          portfolioId={portfolio.id} 
           onDelete={onDelete} 
         />
       </div>

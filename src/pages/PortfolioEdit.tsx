@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { FormProvider } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -13,9 +13,12 @@ import AllocationEditor from "@/components/portfolios/edit/AllocationEditor";
 import PortfolioActions from "@/components/portfolios/edit/PortfolioActions";
 import { usePortfolioEdit } from "@/hooks/portfolio/usePortfolioEdit";
 import { useMemo } from "react";
+import { toast } from "sonner";
 
 const PortfolioEdit = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  
   const {
     portfolio,
     loading,
@@ -41,11 +44,24 @@ const PortfolioEdit = () => {
     assetRatings
   );
 
-  const handleDeleteAllocation = (index: number): Promise<boolean> => {
+  const handleDeleteAllocation = async (index: number): Promise<boolean> => {
     if (allocationItems && index >= 0 && index < allocationItems.length) {
-      return deleteAllocationItem(index) || Promise.resolve(true);
+      const result = await deleteAllocationItem(index);
+      return result !== undefined ? result : true;
     }
-    return Promise.resolve(false);
+    return false;
+  };
+
+  const handleDeletePortfolio = async (): Promise<boolean> => {
+    if (deletePortfolio) {
+      const result = await deletePortfolio();
+      if (result) {
+        navigate('/portfolios');
+        toast.success("Carteira excluída com sucesso");
+      }
+      return !!result;
+    }
+    return false;
   };
 
   const loadingState = useMemo(() => {
@@ -107,8 +123,8 @@ const PortfolioEdit = () => {
           <p className="text-muted-foreground">Modifique os detalhes da sua carteira</p>
         </div>
         <DeletePortfolioDialog 
-          portfolioId={id || ""}
-          onDelete={deletePortfolio} 
+          portfolioId={id}
+          onDelete={handleDeletePortfolio} 
         />
       </div>
 
@@ -133,7 +149,7 @@ const PortfolioEdit = () => {
               deleteAllocationItem={handleDeleteAllocation}
             />
             
-            <PortfolioActions portfolioId={id || ""} />
+            <PortfolioActions portfolioId={id} />
           </form>
         </FormProvider>
       </div>

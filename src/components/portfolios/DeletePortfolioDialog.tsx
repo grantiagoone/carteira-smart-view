@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Trash, Lock } from "lucide-react";
@@ -19,8 +20,8 @@ import { toast } from "sonner";
 import { deletePortfolioFromStorage } from "@/hooks/portfolio/portfolioUtils";
 
 interface DeletePortfolioDialogProps {
-  portfolioId?: number;
-  onDelete: () => void;
+  portfolioId?: string | number;
+  onDelete: () => Promise<boolean>;
 }
 
 const DeletePortfolioDialog = ({ portfolioId, onDelete }: DeletePortfolioDialogProps) => {
@@ -57,15 +58,20 @@ const DeletePortfolioDialog = ({ portfolioId, onDelete }: DeletePortfolioDialogP
       }
 
       if (portfolioId) {
-        const success = await deletePortfolioFromStorage(portfolioId.toString(), user.id);
+        const portfolioIdStr = portfolioId.toString();
+        const success = await deletePortfolioFromStorage(portfolioIdStr, user.id);
         if (!success) {
           throw new Error("Erro ao excluir carteira");
         }
       }
 
-      onDelete();
-      setIsOpen(false);
-      toast.success("Carteira excluída com sucesso");
+      const result = await onDelete();
+      if (result) {
+        setIsOpen(false);
+        toast.success("Carteira excluída com sucesso");
+      } else {
+        throw new Error("Erro ao excluir carteira");
+      }
     } catch (err) {
       console.error("Erro ao verificar senha:", err);
       setError("Erro ao verificar senha");
