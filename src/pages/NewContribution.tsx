@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -13,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getAllPortfoliosFromStorage, loadPortfolioFromStorage } from "@/hooks/portfolio/portfolioUtils";
+import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
+import { AllocationItem } from "@/hooks/portfolio/types";
 
 const formSchema = z.object({
   portfolioId: z.string({
@@ -32,12 +32,7 @@ interface Portfolio {
   name: string;
   allocationData?: AllocationItem[];
   assets?: any[];
-}
-
-interface AllocationItem {
-  name: string;
-  value: number;
-  color: string;
+  assetRatings?: Record<string, number>;
 }
 
 interface AssetSuggestion {
@@ -85,7 +80,8 @@ const NewContribution = () => {
             id: p.id, 
             name: p.name, 
             allocationData: p.allocationData,
-            assets: p.assets
+            assets: p.assets,
+            assetRatings: p.assetRatings
           })));
         }
       } catch (error) {
@@ -100,24 +96,20 @@ const NewContribution = () => {
   }, []);
 
   const calculateSuggestions = (portfolioId: string, amount: number) => {
-    // Find selected portfolio
     const portfolio = userPortfolios.find(p => p.id.toString() === portfolioId);
     if (!portfolio) return [];
     
     setSelectedPortfolio(portfolio);
 
-    // Calculate total current portfolio value
     const portfolioAssets = portfolio.assets || [];
     const totalPortfolioValue = portfolioAssets.reduce((sum, asset) => {
       return sum + (asset.price * (asset.quantity || 0));
     }, 0);
     
-    // Group assets by allocation class
     const assetsByClass: Record<string, any[]> = {};
     const currentValueByClass: Record<string, number> = {};
     const allocatedPct: Record<string, number> = {};
     
-    // Map allocation names to asset types
     const classToTypeMap: Record<string, string[]> = {
       "Ações": ["stock"],
       "FIIs": ["reit"],
@@ -125,7 +117,6 @@ const NewContribution = () => {
       "Internacional": ["international"]
     };
     
-    // Get current allocation percentages by class
     portfolioAssets.forEach(asset => {
       const assetClass = Object.entries(classToTypeMap).find(([_, types]) => 
         types.includes(asset.type)
@@ -141,14 +132,12 @@ const NewContribution = () => {
       currentValueByClass[assetClass] = (currentValueByClass[assetClass] || 0) + assetValue;
     });
     
-    // Calculate current allocation percentages
     Object.keys(currentValueByClass).forEach(className => {
       allocatedPct[className] = totalPortfolioValue > 0 
         ? (currentValueByClass[className] / totalPortfolioValue) * 100 
         : 0;
     });
     
-    // Get target allocation from portfolio
     const targetAllocation = portfolio.allocationData || [];
     const targetByClass: Record<string, number> = {};
     const classColors: Record<string, string> = {};
@@ -158,15 +147,12 @@ const NewContribution = () => {
       classColors[item.name] = item.color;
     });
     
-    // Calculate suggestions based on difference between current and target
     const suggestions: AssetSuggestion[] = [];
     const totalAmount = amount;
     
-    // First, calculate how much to allocate to each class based on the difference
     const allocationDiffs: Record<string, number> = {};
     let totalPositiveDiff = 0;
     
-    // Calculate differences between target and current allocations
     Object.keys(targetByClass).forEach(className => {
       const targetPct = targetByClass[className] || 0;
       const currentPct = allocatedPct[className] || 0;
@@ -176,7 +162,6 @@ const NewContribution = () => {
       if (diff > 0) totalPositiveDiff += diff;
     });
     
-    // Allocate the contribution amount based on the positive differences
     const allocationAmounts: Record<string, number> = {};
     
     if (totalPositiveDiff > 0) {
@@ -189,14 +174,11 @@ const NewContribution = () => {
         }
       });
     } else {
-      // If no positive differences (perfect allocation or no data), 
-      // allocate according to target percentages
       Object.keys(targetByClass).forEach(className => {
         allocationAmounts[className] = (targetByClass[className] / 100) * totalAmount;
       });
     }
     
-    // Now allocate within each class based on asset ratings or equal distribution
     Object.keys(allocationAmounts).forEach(className => {
       const amountForClass = allocationAmounts[className];
       if (amountForClass <= 0) return;
@@ -204,7 +186,6 @@ const NewContribution = () => {
       const assetsInClass = assetsByClass[className] || [];
       
       if (assetsInClass.length > 0) {
-        // Use asset ratings if available, otherwise distribute equally
         const assetRatings = portfolio.assetRatings || {};
         const totalRating = assetsInClass.reduce((sum, asset) => 
           sum + (assetRatings[asset.id] || 5), 0);
@@ -218,7 +199,6 @@ const NewContribution = () => {
             ? (currentAssetValue / totalPortfolioValue) * 100 
             : 0;
           
-          // Calculate quantity to buy
           const quantityToBuy = asset.price > 0 ? Math.floor(amountForAsset / asset.price) : 0;
           
           suggestions.push({
@@ -237,7 +217,6 @@ const NewContribution = () => {
           });
         });
       } else {
-        // If no assets in this class, add a placeholder
         suggestions.push({
           asset: `Novo ativo de ${className}`,
           class: className,
@@ -248,7 +227,6 @@ const NewContribution = () => {
       }
     });
     
-    // Sort suggestions by amount (descending)
     return suggestions.sort((a, b) => b.amount - a.amount);
   };
 
@@ -309,11 +287,9 @@ const NewContribution = () => {
       contributions.push(newContribution);
       localStorage.setItem(storageKey, JSON.stringify(contributions));
       
-      // Update portfolio with new quantities
       if (selectedPortfolio && selectedPortfolio.assets) {
         const updatedPortfolio = {...selectedPortfolio};
         
-        // Update asset quantities
         suggestedAllocation.forEach(suggestion => {
           if (suggestion.ticker && suggestion.quantity) {
             const assetIndex = updatedPortfolio.assets.findIndex(a => a.ticker === suggestion.ticker);
@@ -323,7 +299,6 @@ const NewContribution = () => {
           }
         });
         
-        // Save portfolio changes
         const portfolios = getAllPortfoliosFromStorage(userId);
         const portfolioIndex = portfolios.findIndex(p => p.id.toString() === updatedPortfolio.id.toString());
         

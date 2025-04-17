@@ -17,8 +17,8 @@ export const usePortfolio = (portfolioId: string | undefined) => {
     
     try {
       // Get the current authenticated user
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
       
       if (!userId) {
         toast.error("Você precisa estar logado para excluir uma alocação");

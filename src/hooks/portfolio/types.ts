@@ -15,7 +15,7 @@ export interface Portfolio {
   returnValue: number;
   allocationData: AllocationItem[];
   assets?: Asset[];
-  assetRatings?: Record<string, number>;
+  assetRatings: Record<string, number>;
 }
 
 export type AssetQuantities = Record<string, number>;

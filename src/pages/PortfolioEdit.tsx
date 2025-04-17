@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,7 +68,7 @@ const PortfolioEdit = () => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!portfolio) return;
     
     const totalAllocation = allocationItems.reduce((sum, item) => sum + item.value, 0);
@@ -77,8 +78,8 @@ const PortfolioEdit = () => {
     }
     
     try {
-      const { data: { session } } = supabase.auth.getSession();
-      const userId = session?.user?.id;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
       
       if (!userId) {
         toast("Você precisa estar logado para salvar alterações");
