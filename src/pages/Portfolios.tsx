@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
 import { usePortfolioPriceUpdater } from "@/hooks/portfolio/usePortfolioPriceUpdater";
+import DeletePortfolioDialog from "@/components/portfolios/DeletePortfolioDialog";
+import { AlertTriangle } from "lucide-react";
 
 interface Asset {
   id: string;
@@ -154,6 +156,24 @@ const Portfolios = () => {
     }));
   };
 
+  const handleDeletePortfolio = async () => {
+    try {
+      const updatedPortfolios = portfolios.filter(p => p.id !== selectedPortfolioId);
+      setPortfolios(updatedPortfolios);
+      
+      if (updatedPortfolios.length > 0) {
+        setSelectedPortfolioId(updatedPortfolios[0].id);
+      } else {
+        setSelectedPortfolioId(null);
+      }
+      
+      setViewType("all");
+    } catch (error) {
+      console.error("Erro ao excluir carteira:", error);
+      toast.error("Erro ao excluir carteira");
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -246,16 +266,24 @@ const Portfolios = () => {
                         <Wallet className="h-5 w-5 text-primary" />
                         <span>{selectedPortfolio.name}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedPortfolio.value)}
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-2xl font-bold">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedPortfolio.value)}
+                          </div>
+                          <div className="text-sm text-green-600">
+                            +{selectedPortfolio.returnPercentage}% 
+                            <span className="text-muted-foreground ml-1">
+                              ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedPortfolio.returnValue)})
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-sm text-green-600">
-                          +{selectedPortfolio.returnPercentage}% 
-                          <span className="text-muted-foreground ml-1">
-                            ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedPortfolio.returnValue)})
-                          </span>
-                        </div>
+                        {selectedPortfolio.value === 0 && (
+                          <div className="flex items-center gap-2 bg-amber-100 p-2 rounded-md">
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            <span className="text-sm text-amber-600">Carteira vazia</span>
+                          </div>
+                        )}
                       </div>
                     </CardTitle>
                   </CardHeader>
@@ -297,16 +325,19 @@ const Portfolios = () => {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" asChild>
-                      <Link to={`/portfolio/${selectedPortfolio.id}`}>
-                        Ver Detalhes
-                      </Link>
-                    </Button>
-                    <Button variant="outline" asChild>
-                      <Link to={`/portfolio/${selectedPortfolio.id}/edit`}>
-                        Editar
-                      </Link>
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" asChild>
+                        <Link to={`/portfolio/${selectedPortfolio.id}`}>
+                          Ver Detalhes
+                        </Link>
+                      </Button>
+                      <Button variant="outline" asChild>
+                        <Link to={`/portfolio/${selectedPortfolio.id}/edit`}>
+                          Editar
+                        </Link>
+                      </Button>
+                    </div>
+                    <DeletePortfolioDialog onDelete={handleDeletePortfolio} />
                   </CardFooter>
                 </Card>
 
@@ -377,23 +408,31 @@ const Portfolios = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {portfolios.map((portfolio) => (
-                <Card key={portfolio.id} className="gradient-card">
+                <Card key={portfolio.id} className="gradient-card hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <Wallet className="h-5 w-5 text-primary" />
                         <span>{portfolio.name}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(portfolio.value)}
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-2xl font-bold">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(portfolio.value)}
+                          </div>
+                          <div className="text-sm text-green-600">
+                            +{portfolio.returnPercentage}% 
+                            <span className="text-muted-foreground ml-1">
+                              ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(portfolio.returnValue)})
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-sm text-green-600">
-                          +{portfolio.returnPercentage}% 
-                          <span className="text-muted-foreground ml-1">
-                            ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(portfolio.returnValue)})
-                          </span>
-                        </div>
+                        {portfolio.value === 0 && (
+                          <div className="flex items-center gap-2 bg-amber-100 p-2 rounded-md">
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            <span className="text-sm text-amber-600">Carteira vazia</span>
+                          </div>
+                        )}
                       </div>
                     </CardTitle>
                   </CardHeader>
@@ -401,16 +440,19 @@ const Portfolios = () => {
                     <AllocationChart data={portfolio.allocationData} />
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" asChild>
-                      <Link to={`/portfolio/${portfolio.id}`}>
-                        Ver Detalhes
-                      </Link>
-                    </Button>
-                    <Button variant="outline" asChild>
-                      <Link to={`/portfolio/${portfolio.id}/edit`}>
-                        Editar
-                      </Link>
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" asChild>
+                        <Link to={`/portfolio/${portfolio.id}`}>
+                          Ver Detalhes
+                        </Link>
+                      </Button>
+                      <Button variant="outline" asChild>
+                        <Link to={`/portfolio/${portfolio.id}/edit`}>
+                          Editar
+                        </Link>
+                      </Button>
+                    </div>
+                    <DeletePortfolioDialog onDelete={() => handleDeletePortfolio()} />
                   </CardFooter>
                 </Card>
               ))}
