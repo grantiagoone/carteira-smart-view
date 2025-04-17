@@ -27,6 +27,7 @@ export interface Portfolio {
   returnValue: number;
   allocationData: AllocationItem[];
   assets?: Asset[];
+  assetRatings?: Record<string, number>;
 }
 
 export const usePortfolio = (portfolioId: string | undefined) => {
@@ -36,6 +37,7 @@ export const usePortfolio = (portfolioId: string | undefined) => {
   const [allocationItems, setAllocationItems] = useState<AllocationItem[]>([]);
   const [selectedAssets, setSelectedAssets] = useState<Asset[]>([]);
   const [assetQuantities, setAssetQuantities] = useState<Record<string, number>>({});
+  const [assetRatings, setAssetRatings] = useState<Record<string, number>>({});
   
   useEffect(() => {
     const fetchPortfolio = () => {
@@ -60,6 +62,18 @@ export const usePortfolio = (portfolioId: string | undefined) => {
                 quantities[asset.id] = asset.quantity || 0;
               });
               setAssetQuantities(quantities);
+              
+              // Initialize ratings if they exist
+              if (foundPortfolio.assetRatings) {
+                setAssetRatings(foundPortfolio.assetRatings);
+              } else {
+                // Default rating of 5 for all assets
+                const defaultRatings: Record<string, number> = {};
+                foundPortfolio.assets.forEach(asset => {
+                  defaultRatings[asset.id] = 5;
+                });
+                setAssetRatings(defaultRatings);
+              }
             }
           } else {
             toast("Carteira não encontrada");
@@ -117,22 +131,48 @@ export const usePortfolio = (portfolioId: string | undefined) => {
       delete newQuantities[asset.id];
       setAssetQuantities(newQuantities);
       
+      // Remove rating data
+      const newRatings = { ...assetRatings };
+      delete newRatings[asset.id];
+      setAssetRatings(newRatings);
+      
       toast(`${asset.ticker} removido da carteira`);
       return;
     }
     
     // Add the asset
     setSelectedAssets([...selectedAssets, asset]);
+    
+    // Initialize with default rating of 5
+    setAssetRatings(prev => ({
+      ...prev,
+      [asset.id]: 5
+    }));
+    
+    // Distribute percentages among assets of the same type
+    distributeAllocationByType();
+    
     toast(`${asset.ticker} adicionado à carteira`);
   };
 
   const handleRemoveAsset = (assetId: string) => {
+    const assetToRemove = selectedAssets.find(asset => asset.id === assetId);
+    if (!assetToRemove) return;
+    
     setSelectedAssets(selectedAssets.filter(asset => asset.id !== assetId));
     
     // Remove quantity data
     const newQuantities = { ...assetQuantities };
     delete newQuantities[assetId];
     setAssetQuantities(newQuantities);
+    
+    // Remove rating data
+    const newRatings = { ...assetRatings };
+    delete newRatings[assetId];
+    setAssetRatings(newRatings);
+    
+    // Redistribute percentages among remaining assets
+    distributeAllocationByType();
   };
 
   const handleUpdateQuantity = (assetId: string, quantity: number) => {
@@ -140,6 +180,61 @@ export const usePortfolio = (portfolioId: string | undefined) => {
       ...prev,
       [assetId]: quantity
     }));
+  };
+  
+  const handleUpdateRating = (assetId: string, rating: number) => {
+    setAssetRatings(prev => ({
+      ...prev,
+      [assetId]: rating
+    }));
+  };
+  
+  const distributeAllocationByType = () => {
+    if (selectedAssets.length === 0) return;
+    
+    // Group assets by type
+    const assetsByType: Record<string, Asset[]> = {};
+    selectedAssets.forEach(asset => {
+      if (!assetsByType[asset.type]) {
+        assetsByType[asset.type] = [];
+      }
+      assetsByType[asset.type].push(asset);
+    });
+    
+    // Find allocation items for each type
+    const typeToAllocationMap: Record<string, string> = {
+      "stock": "Ações",
+      "reit": "FIIs",
+      "fixed_income": "Renda Fixa",
+      "international": "Internacional"
+    };
+    
+    // For each asset type, distribute the allocation
+    Object.entries(assetsByType).forEach(([type, assets]) => {
+      const allocationType = typeToAllocationMap[type] || type;
+      const allocationItem = allocationItems.find(item => item.name === allocationType);
+      
+      if (allocationItem && assets.length > 0) {
+        // Get total rating for weighted distribution
+        const totalRating = assets.reduce((sum, asset) => sum + (assetRatings[asset.id] || 5), 0);
+        
+        // If all assets have the same rating (or no ratings), distribute evenly
+        if (totalRating === 0 || assets.every(a => assetRatings[a.id] === assetRatings[assets[0].id])) {
+          const quantityPerAsset = 100 / assets.length;
+          assets.forEach(asset => {
+            handleUpdateQuantity(asset.id, quantityPerAsset);
+          });
+        } else {
+          // Distribute based on ratings
+          assets.forEach(asset => {
+            const rating = assetRatings[asset.id] || 5;
+            const weight = rating / totalRating;
+            const quantity = (weight * 100);
+            handleUpdateQuantity(asset.id, quantity);
+          });
+        }
+      }
+    });
   };
 
   const deletePortfolio = () => {
@@ -166,12 +261,14 @@ export const usePortfolio = (portfolioId: string | undefined) => {
     allocationItems,
     selectedAssets,
     assetQuantities,
+    assetRatings,
     updateAllocationItem,
     removeAllocationItem,
     addAllocationItem,
     handleAddAsset,
     handleRemoveAsset,
     handleUpdateQuantity,
+    handleUpdateRating,
     deletePortfolio
   };
 };

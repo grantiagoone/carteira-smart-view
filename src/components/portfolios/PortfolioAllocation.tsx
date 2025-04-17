@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardContent, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { X, Save } from "lucide-react";
+import { X, Save, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AllocationItem {
   name: string;
@@ -28,6 +29,16 @@ const PortfolioAllocation = ({
   addAllocationItem,
   portfolioId
 }: PortfolioAllocationProps) => {
+  const [totalAllocation, setTotalAllocation] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
+
+  useEffect(() => {
+    // Calculate total allocation whenever items change
+    const total = allocationItems.reduce((sum, item) => sum + item.value, 0);
+    setTotalAllocation(total);
+    setShowWarning(total !== 100);
+  }, [allocationItems]);
+
   return (
     <Card className="mt-6">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -37,6 +48,15 @@ const PortfolioAllocation = ({
         </Button>
       </CardHeader>
       <CardContent>
+        {showWarning && (
+          <Alert variant="warning" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              A alocação total deve ser 100%. Atualmente: {totalAllocation}%
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {allocationItems.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-muted-foreground">Nenhuma alocação definida</p>
@@ -107,12 +127,21 @@ const PortfolioAllocation = ({
             ))}
           </div>
         )}
+
+        {allocationItems.length > 0 && (
+          <div className="mt-4 flex justify-between items-center py-2 px-4 bg-muted/50 rounded-md">
+            <span className="font-medium">Total:</span>
+            <span className={totalAllocation !== 100 ? "text-destructive font-bold" : "font-bold"}>
+              {totalAllocation}%
+            </span>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-end gap-4">
         <Button type="button" variant="outline" asChild>
           <Link to={`/portfolio/${portfolioId}`}>Cancelar</Link>
         </Button>
-        <Button type="submit">
+        <Button type="submit" disabled={totalAllocation !== 100}>
           <Save className="mr-2 h-4 w-4" />
           Salvar Alterações
         </Button>

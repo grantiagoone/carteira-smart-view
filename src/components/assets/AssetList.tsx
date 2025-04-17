@@ -1,115 +1,53 @@
 
+import { useState } from "react";
 import { Asset } from "./AssetSearch";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import AssetDetails from "./AssetDetails";
 
 interface AssetListProps {
   assets: Asset[];
   onRemoveAsset: (assetId: string) => void;
   onUpdateQuantity: (assetId: string, quantity: number) => void;
-  title?: string;
+  onUpdateRating?: (assetId: string, rating: number) => void;
+  assetRatings?: Record<string, number>;
 }
 
-export const AssetList = ({
-  assets,
-  onRemoveAsset,
+export const AssetList = ({ 
+  assets, 
+  onRemoveAsset, 
   onUpdateQuantity,
-  title = "Ativos Selecionados"
+  onUpdateRating,
+  assetRatings = {}
 }: AssetListProps) => {
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-
-  // Initialize quantities from asset.quantity if available
-  useEffect(() => {
-    const initialQuantities: Record<string, number> = {};
-    assets.forEach(asset => {
-      if (asset.quantity !== undefined) {
-        initialQuantities[asset.id] = asset.quantity;
-      }
-    });
-    
-    if (Object.keys(initialQuantities).length > 0) {
-      setQuantities(prev => ({
-        ...prev,
-        ...initialQuantities
-      }));
-    }
-  }, [assets]);
-
-  const handleQuantityChange = (assetId: string, value: string) => {
-    const quantity = parseFloat(value) || 0;
-    setQuantities(prev => ({
-      ...prev,
-      [assetId]: quantity
-    }));
-    onUpdateQuantity(assetId, quantity);
-  };
+  if (assets.length === 0) {
+    return (
+      <div className="text-center p-6 border rounded-md">
+        <p className="text-muted-foreground">Nenhum ativo adicionado</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-base font-semibold">{title}</h3>
-      
-      {assets.length === 0 ? (
-        <div className="text-center py-8 border border-dashed rounded-md">
-          <p className="text-muted-foreground">Nenhum ativo selecionado</p>
-          <p className="text-xs text-muted-foreground mt-1">Use a busca acima para adicionar ativos</p>
-        </div>
-      ) : (
-        <div className="border rounded-md overflow-hidden">
-          <table className="min-w-full">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticker</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantidade</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {assets.map((asset) => {
-                const quantity = quantities[asset.id] || 0;
-                const total = asset.price * quantity;
-                
-                return (
-                  <tr key={asset.id}>
-                    <td className="px-4 py-3 text-sm font-medium">{asset.ticker}</td>
-                    <td className="px-4 py-3 text-sm">{asset.name}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price)}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={quantity || ""}
-                        onChange={(e) => handleQuantityChange(asset.id, e.target.value)}
-                        className="w-24"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onRemoveAsset(asset.id)}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+    <div>
+      <div className="mb-4">
+        <p className="font-medium mb-1">Ativos ({assets.length})</p>
+        <p className="text-sm text-muted-foreground">Defina a quantidade de cada ativo na carteira</p>
+      </div>
+
+      <div className="space-y-4">
+        {assets.map((asset) => (
+          <AssetDetails
+            key={asset.id}
+            asset={asset}
+            onRemove={onRemoveAsset}
+            onUpdateQuantity={onUpdateQuantity}
+            onUpdateRating={onUpdateRating}
+            rating={assetRatings[asset.id] || 5}
+          />
+        ))}
+      </div>
     </div>
   );
 };

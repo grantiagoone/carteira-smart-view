@@ -32,12 +32,14 @@ const PortfolioEdit = () => {
     allocationItems,
     selectedAssets,
     assetQuantities,
+    assetRatings,
     updateAllocationItem,
     removeAllocationItem,
     addAllocationItem,
     handleAddAsset,
     handleRemoveAsset,
     handleUpdateQuantity,
+    handleUpdateRating,
     deletePortfolio
   } = usePortfolio(id);
 
@@ -52,6 +54,13 @@ const PortfolioEdit = () => {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!portfolio) return;
+    
+    // Validate that allocation adds up to 100%
+    const totalAllocation = allocationItems.reduce((sum, item) => sum + item.value, 0);
+    if (totalAllocation !== 100) {
+      toast("A alocação total deve ser 100%");
+      return;
+    }
     
     try {
       const savedPortfolios = localStorage.getItem('portfolios');
@@ -88,53 +97,6 @@ const PortfolioEdit = () => {
             }
           });
           
-          let updatedAllocation = [...allocationItems];
-          
-          // If we have assets with values, generate allocation data from them
-          if (Object.values(assetsByType).some(v => v > 0)) {
-            updatedAllocation = Object.entries(assetsByType).map(([type, value]) => {
-              const percentage = totalValue > 0 ? (value / totalValue) * 100 : 0;
-              
-              // Find existing allocation item with the same name or create new one
-              const existingItem = allocationItems.find(item => {
-                const typeNameMap: Record<string, string> = {
-                  "stock": "Ações",
-                  "reit": "FIIs",
-                  "fixed_income": "Renda Fixa",
-                  "international": "Internacional"
-                };
-                return item.name === (typeNameMap[type] || type);
-              });
-              
-              if (existingItem) {
-                return {
-                  ...existingItem,
-                  value: Math.round(percentage)
-                };
-              }
-              
-              const colorMap: Record<string, string> = {
-                "stock": "#ea384c",
-                "reit": "#0D9488",
-                "fixed_income": "#F59E0B",
-                "international": "#222"
-              };
-              
-              const nameMap: Record<string, string> = {
-                "stock": "Ações",
-                "reit": "FIIs",
-                "fixed_income": "Renda Fixa",
-                "international": "Internacional"
-              };
-              
-              return {
-                name: nameMap[type] || type,
-                value: Math.round(percentage),
-                color: colorMap[type] || "#6B7280"
-              };
-            });
-          }
-
           // Update the portfolio
           portfolios[portfolioIndex] = {
             ...portfolios[portfolioIndex],
@@ -142,8 +104,9 @@ const PortfolioEdit = () => {
             value: totalValue,
             returnPercentage: Number(values.returnPercentage),
             returnValue: (totalValue * Number(values.returnPercentage)) / 100,
-            allocationData: updatedAllocation,
-            assets: updatedAssets
+            allocationData: allocationItems,
+            assets: updatedAssets,
+            assetRatings: assetRatings
           };
           
           localStorage.setItem('portfolios', JSON.stringify(portfolios));
@@ -212,6 +175,8 @@ const PortfolioEdit = () => {
               onAddAsset={handleAddAsset}
               onRemoveAsset={handleRemoveAsset}
               onUpdateQuantity={handleUpdateQuantity}
+              onUpdateRating={handleUpdateRating}
+              assetRatings={assetRatings}
             />
             
             <PortfolioAllocation 

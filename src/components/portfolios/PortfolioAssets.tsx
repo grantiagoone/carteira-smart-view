@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -11,13 +10,17 @@ interface PortfolioAssetsProps {
   onAddAsset: (asset: Asset) => void;
   onRemoveAsset: (assetId: string) => void;
   onUpdateQuantity: (assetId: string, quantity: number) => void;
+  onUpdateRating?: (assetId: string, rating: number) => void;
+  assetRatings?: Record<string, number>;
 }
 
 const PortfolioAssets = ({
   selectedAssets,
   onAddAsset,
   onRemoveAsset,
-  onUpdateQuantity
+  onUpdateQuantity,
+  onUpdateRating,
+  assetRatings = {}
 }: PortfolioAssetsProps) => {
   return (
     <Card className="mt-6">
@@ -48,6 +51,8 @@ const PortfolioAssets = ({
           assets={selectedAssets} 
           onRemoveAsset={onRemoveAsset} 
           onUpdateQuantity={onUpdateQuantity}
+          onUpdateRating={onUpdateRating}
+          assetRatings={assetRatings}
         />
       </CardContent>
     </Card>
