@@ -18,6 +18,10 @@ import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
 import { toast } from "sonner";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { Portfolio, AllocationItem } from "@/hooks/portfolio/types";
+import RebalancingActions from "@/components/rebalancing/RebalancingActions";
+import FilterControls from "@/components/rebalancing/FilterControls";
+import HistoryItem from "@/components/rebalancing/HistoryItem";
+import { useRebalancing } from "@/hooks/rebalancing/useRebalancing";
 
 interface RebalanceAction {
   assetClass: string;
@@ -36,15 +40,27 @@ const Rebalance = () => {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loading, setLoading] = useState(true);
   const [rebalanceActions, setRebalanceActions] = useState<RebalanceAction[]>([]);
+  const [filteredActions, setFilteredActions] = useState<RebalanceAction[]>([]);
   const [currentAllocation, setCurrentAllocation] = useState<{name: string; value: number; color: string; target: number}[]>([]);
   const [targetAllocation, setTargetAllocation] = useState<{name: string; value: number; color: string;}[]>([]);
   
   // Use the usePortfolio hook to get portfolio details when selectedPortfolioId changes
   const { portfolio: selectedPortfolio } = usePortfolio(selectedPortfolioId || undefined);
+  
+  // Use the new rebalancing hook
+  const { 
+    isExecuting,
+    history,
+    loadHistory,
+    saveRebalancing,
+    handleFilterChange,
+    viewRebalanceDetails,
+    repeatRebalance
+  } = useRebalancing(selectedPortfolioId || undefined);
 
-  // Load portfolios
+  // Load portfolios and history
   useEffect(() => {
-    const loadUserPortfolios = async () => {
+    const loadUserData = async () => {
       setLoading(true);
       
       try {
@@ -60,19 +76,22 @@ const Rebalance = () => {
           if (userPortfolios && userPortfolios.length > 0 && !selectedPortfolioId) {
             setSelectedPortfolioId(userPortfolios[0].id.toString());
           }
+          
+          // Load rebalancing history
+          loadHistory();
         } else {
           setPortfolios([]);
         }
       } catch (error) {
-        console.error("Erro ao carregar carteiras:", error);
+        console.error("Erro ao carregar dados:", error);
         setPortfolios([]);
       } finally {
         setLoading(false);
       }
     };
     
-    loadUserPortfolios();
-  }, []);
+    loadUserData();
+  }, [loadHistory]);
 
   // Memoize the calculation function to prevent recreating it on every render
   const calculateRebalancing = useCallback((portfolio: Portfolio) => {
@@ -139,6 +158,7 @@ const Rebalance = () => {
     });
     
     setRebalanceActions(actions);
+    setFilteredActions(actions);
   }, []);
 
   // Update the rebalancing calculation when the portfolio changes
@@ -158,6 +178,23 @@ const Rebalance = () => {
       toast.success("Análise de rebalanceamento atualizada");
     }
   }, [selectedPortfolio, calculateRebalancing]);
+  
+  const handleFiltersChange = useCallback((filters: any) => {
+    const filtered = handleFilterChange(rebalanceActions, filters);
+    setFilteredActions(filtered);
+  }, [rebalanceActions, handleFilterChange]);
+  
+  const executeRebalancing = useCallback(() => {
+    if (selectedPortfolio && rebalanceActions.some(action => action.diffPercentage !== 0)) {
+      saveRebalancing(
+        selectedPortfolio.id.toString(),
+        selectedPortfolio.name || "Carteira sem nome",
+        rebalanceActions
+      );
+    } else {
+      toast.info("Não há alterações para executar");
+    }
+  }, [selectedPortfolio, rebalanceActions, saveRebalancing]);
 
   // Memoize the allocation charts to prevent unnecessary re-renders
   const currentAllocationChart = useMemo(() => (
@@ -168,7 +205,7 @@ const Rebalance = () => {
     <AllocationChart data={targetAllocation} />
   ), [targetAllocation]);
 
-  // Memoize the empty state UI to prevent re-renders
+  // Memoize UI components to prevent re-renders
   const emptyStateUI = useMemo(() => (
     <Card className="p-6 bg-white border border-slate-200 shadow-md rounded-lg">
       <CardContent className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -190,10 +227,17 @@ const Rebalance = () => {
     </Card>
   ), []);
 
-  // Memoize the loading UI to prevent re-renders
   const loadingUI = useMemo(() => (
     <div className="flex items-center justify-center h-[50vh]">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  ), []);
+  
+  const emptyHistoryUI = useMemo(() => (
+    <div className="text-center py-8">
+      <p className="text-muted-foreground">
+        Nenhum rebalanceamento realizado ainda. Execute seu primeiro rebalanceamento para ver o histórico.
+      </p>
     </div>
   ), []);
 
@@ -245,26 +289,54 @@ const Rebalance = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handleUpdateAnalysis}>
-            Atualizar Análise
-          </Button>
+          
+          <div className="flex gap-2">
+            <Button onClick={handleUpdateAnalysis} variant="outline">
+              Atualizar Análise
+            </Button>
+            
+            {/* Adicionamos o botão de ações avançadas aqui */}
+            <Button 
+              onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+              variant="secondary"
+            >
+              Opções Avançadas {isDetailsOpen ? <ChevronDown className="ml-1 h-4 w-4" /> : <ChevronRight className="ml-1 h-4 w-4" />}
+            </Button>
+          </div>
         </div>
+        
+        {/* Opções avançadas */}
+        <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+          <CollapsibleContent>
+            <div className="mt-4">
+              <FilterControls onFilterChange={handleFiltersChange} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       {selectedPortfolio && (
         <Card className="gradient-card mb-6">
-          <CardHeader>
-            <CardTitle>Status do Rebalanceamento</CardTitle>
-            <CardDescription>
-              {selectedPortfolio.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedPortfolio.value || 0)}
-            </CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle>Status do Rebalanceamento</CardTitle>
+              <CardDescription>
+                {selectedPortfolio.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedPortfolio.value || 0)}
+              </CardDescription>
+            </div>
+            
+            {/* Adicionamos as ações de rebalanceamento aqui */}
+            <RebalancingActions 
+              onExecute={executeRebalancing} 
+              hasChanges={rebalanceActions.some(action => action.diffPercentage !== 0)}
+            />
           </CardHeader>
           <CardContent>
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="flex-1">
                 <h3 className="font-medium mb-4">Resumo do Desbalanceamento</h3>
                 <div className="space-y-6">
-                  {rebalanceActions.map((action, index) => (
+                  {filteredActions.map((action, index) => (
                     <div key={index} className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>{action.assetClass}</span>
@@ -338,7 +410,7 @@ const Rebalance = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {rebalanceActions.map((action, index) => (
+                      {filteredActions.map((action, index) => (
                         action.diffPercentage !== 0 && (
                           <tr key={index} className="border-b last:border-0">
                             <td className="py-3">{action.assetClass}</td>
@@ -352,8 +424,11 @@ const Rebalance = () => {
                     </tbody>
                   </table>
                   <div className="mt-4 flex justify-end">
-                    <Button>
-                      Iniciar Rebalanceamento
+                    <Button 
+                      onClick={executeRebalancing} 
+                      disabled={isExecuting || !rebalanceActions.some(action => action.diffPercentage !== 0)}
+                    >
+                      {isExecuting ? "Processando..." : "Executar Rebalanceamento"}
                     </Button>
                   </div>
                 </div>
@@ -373,15 +448,28 @@ const Rebalance = () => {
         </CardHeader>
         <CardContent>
           {portfolios.length > 0 ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">Nenhum rebalanceamento encontrado</p>
-                  <p className="text-sm text-muted-foreground">Inicie seu primeiro rebalanceamento</p>
-                </div>
-                <Button variant="outline" size="sm">Iniciar</Button>
+            history.length > 0 ? (
+              <div className="space-y-4">
+                {history.slice(0, 5).map((item) => (
+                  <HistoryItem 
+                    key={item.id} 
+                    item={item} 
+                    onView={viewRebalanceDetails}
+                    onRepeat={repeatRebalance}
+                  />
+                ))}
+                
+                {history.length > 5 && (
+                  <div className="flex justify-center mt-4">
+                    <Button variant="outline" size="sm">
+                      Ver Todos os Rebalanceamentos
+                    </Button>
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              emptyHistoryUI
+            )
           ) : (
             <p className="text-center py-4 text-muted-foreground">
               Você precisa adicionar uma carteira para visualizar o histórico de rebalanceamentos.
