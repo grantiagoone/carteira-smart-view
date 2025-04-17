@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Trash, Lock } from "lucide-react";
@@ -17,15 +16,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { deletePortfolioFromStorage } from "@/hooks/portfolio/portfolioUtils";
 
 interface DeletePortfolioDialogProps {
+  portfolioId?: number;
   onDelete: () => void;
 }
 
-const DeletePortfolioDialog = ({ onDelete }: DeletePortfolioDialogProps) => {
+const DeletePortfolioDialog = ({ portfolioId, onDelete }: DeletePortfolioDialogProps) => {
   const [password, setPassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!password) {
@@ -37,14 +39,12 @@ const DeletePortfolioDialog = ({ onDelete }: DeletePortfolioDialogProps) => {
     setError(null);
 
     try {
-      // Get current user email
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user || !user.email) {
         throw new Error("Usuário não encontrado");
       }
 
-      // Verify password by attempting to sign in
       const { error } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: password
@@ -56,8 +56,15 @@ const DeletePortfolioDialog = ({ onDelete }: DeletePortfolioDialogProps) => {
         return;
       }
 
-      // If we got here, password is correct
+      if (portfolioId) {
+        const success = await deletePortfolioFromStorage(portfolioId.toString(), user.id);
+        if (!success) {
+          throw new Error("Erro ao excluir carteira");
+        }
+      }
+
       onDelete();
+      setIsOpen(false);
       toast.success("Carteira excluída com sucesso");
     } catch (err) {
       console.error("Erro ao verificar senha:", err);
@@ -68,7 +75,7 @@ const DeletePortfolioDialog = ({ onDelete }: DeletePortfolioDialogProps) => {
   };
 
   return (
-    <AlertDialog>
+    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
         <Button variant="destructive">
           <Trash className="mr-2 h-4 w-4" />

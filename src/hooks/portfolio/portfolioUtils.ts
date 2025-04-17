@@ -1,4 +1,3 @@
-
 import { Asset } from "@/services/brapiService";
 import { AllocationItem, AssetRatings, AssetQuantities } from "./types";
 
@@ -77,20 +76,38 @@ export const loadPortfolioFromStorage = (portfolioId: string | undefined, userId
 /**
  * Deletes a portfolio from localStorage with user-specific key
  */
-export const deletePortfolioFromStorage = (portfolioId: string | undefined, userId?: string) => {
-  if (!portfolioId) return false;
+export const deletePortfolioFromStorage = async (portfolioId: string | undefined, userId?: string) => {
+  if (!portfolioId || !userId) return false;
   
-  // Use user-specific storage key if userId is provided
-  const storageKey = userId ? `portfolios_${userId}` : 'portfolios';
-  const savedPortfolios = localStorage.getItem(storageKey);
-  
-  if (!savedPortfolios) return false;
-  
-  const portfolios = JSON.parse(savedPortfolios);
-  const updatedPortfolios = portfolios.filter((p: any) => p.id.toString() !== portfolioId.toString());
-  localStorage.setItem(storageKey, JSON.stringify(updatedPortfolios));
-  
-  return true;
+  try {
+    // Delete portfolio data
+    const storageKey = `portfolios_${userId}`;
+    const savedPortfolios = localStorage.getItem(storageKey);
+    
+    if (!savedPortfolios) return false;
+    
+    const portfolios = JSON.parse(savedPortfolios);
+    const updatedPortfolios = portfolios.filter((p: any) => p.id.toString() !== portfolioId.toString());
+    localStorage.setItem(storageKey, JSON.stringify(updatedPortfolios));
+    
+    // Clean up related data
+    const contributionKey = `contributions_${userId}`;
+    const savedContributions = localStorage.getItem(contributionKey);
+    if (savedContributions) {
+      const contributions = JSON.parse(savedContributions);
+      const updatedContributions = contributions.filter((c: any) => c.portfolioId.toString() !== portfolioId.toString());
+      localStorage.setItem(contributionKey, JSON.stringify(updatedContributions));
+    }
+    
+    // Clean up rebalancing history
+    const rebalancingKey = `rebalancing_${userId}_${portfolioId}`;
+    localStorage.removeItem(rebalancingKey);
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting portfolio:", error);
+    return false;
+  }
 };
 
 /**
