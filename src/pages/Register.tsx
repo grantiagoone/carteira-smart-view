@@ -70,11 +70,11 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md p-6 space-y-6 bg-card rounded-lg shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#222] to-[#ea384c]">
+      <div className="w-full max-w-md p-6 space-y-6 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-lg">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Criar Conta</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-white">Criar Conta</h1>
+          <p className="text-gray-300">
             Preencha os dados abaixo para criar sua conta
           </p>
         </div>
@@ -86,9 +86,13 @@ const Register = () => {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome</FormLabel>
+                  <FormLabel className="text-white">Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Seu nome" {...field} />
+                    <Input 
+                      placeholder="Seu nome" 
+                      {...field} 
+                      className="bg-white/20 border-white/30 text-white placeholder:text-gray-400"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -100,9 +104,14 @@ const Register = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-white">Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="seu@email.com" {...field} />
+                    <Input 
+                      type="email" 
+                      placeholder="seu@email.com" 
+                      {...field} 
+                      className="bg-white/20 border-white/30 text-white placeholder:text-gray-400"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -114,19 +123,20 @@ const Register = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Senha</FormLabel>
+                  <FormLabel className="text-white">Senha</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="******"
                         {...field}
+                        className="bg-white/20 border-white/30 text-white placeholder:text-gray-400"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:text-white/70"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
@@ -142,7 +152,11 @@ const Register = () => {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-[#ea384c] hover:bg-[#ea384c]/90 text-white" 
+              disabled={isLoading}
+            >
               {isLoading ? "Criando conta..." : (
                 <>
                   <UserPlus className="mr-2 h-4 w-4" />

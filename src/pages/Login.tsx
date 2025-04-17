@@ -74,7 +74,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1A3B58] to-[#123047]">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#222] to-[#ea384c]">
       <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl">
         <div className="text-center space-y-2">
           <h2 className="text-3xl font-bold text-white">Bem-vindo</h2>
@@ -104,7 +104,7 @@ const Login = () => {
             <Button 
               type="button" 
               variant="link" 
-              className="p-0 h-auto text-sm text-[#4CC38A] hover:text-[#5CD99A]"
+              className="p-0 h-auto text-sm text-[#ea384c] hover:text-[#ea384c]/80"
               onClick={() => setResetPasswordOpen(true)}
             >
               Esqueceu sua senha?
@@ -112,7 +112,7 @@ const Login = () => {
           </div>
           <Button 
             type="submit" 
-            className="w-full bg-[#4CC38A] hover:bg-[#5CD99A] text-white" 
+            className="w-full bg-[#ea384c] hover:bg-[#ea384c]/90 text-white" 
             disabled={isLoading}
           >
             {isLoading ? "Entrando..." : "Entrar"}
@@ -123,7 +123,7 @@ const Login = () => {
               <span className="w-full border-t border-white/20" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#1A3B58] px-2 text-gray-400">
+              <span className="bg-[#222] px-2 text-gray-400">
                 Ou continue com
               </span>
             </div>
@@ -151,7 +151,7 @@ const Login = () => {
       </div>
 
       <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
-        <DialogContent className="bg-[#1A3B58] text-white border-white/20">
+        <DialogContent className="bg-[#222] text-white border-white/20">
           <DialogHeader>
             <DialogTitle>Recuperação de senha</DialogTitle>
             <DialogDescription className="text-gray-300">
@@ -181,7 +181,7 @@ const Login = () => {
               <Button 
                 type="submit" 
                 disabled={isResetting}
-                className="bg-[#4CC38A] hover:bg-[#5CD99A]"
+                className="bg-[#ea384c] hover:bg-[#ea384c]/90"
               >
                 {isResetting ? "Enviando..." : "Enviar link de recuperação"}
               </Button>
