@@ -10,12 +10,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface RebalancingActionsProps {
+export interface RebalancingActionsProps {
   onExecute: () => void;
   hasChanges: boolean;
+  isExecuting: boolean;
 }
 
-const RebalancingActions = ({ onExecute, hasChanges }: RebalancingActionsProps) => {
+const RebalancingActions = ({ onExecute, hasChanges, isExecuting }: RebalancingActionsProps) => {
   const handleExportPDF = () => {
     toast.info("Exportando relatório em PDF...");
     // Implementação real de exportação seria adicionada aqui
@@ -87,11 +88,11 @@ const RebalancingActions = ({ onExecute, hasChanges }: RebalancingActionsProps) 
         variant="default" 
         size="sm"
         onClick={onExecute}
-        disabled={!hasChanges}
+        disabled={!hasChanges || isExecuting}
         className="flex items-center gap-1"
       >
         <ArrowDownToLine className="h-4 w-4" />
-        Executar Rebalanceamento
+        {isExecuting ? "Processando..." : "Executar Rebalanceamento"}
       </Button>
     </div>
   );

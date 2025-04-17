@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import { FormProvider } from "react-hook-form";
@@ -42,7 +43,7 @@ const PortfolioEdit = () => {
 
   const handleDeleteAllocation = (index: number): Promise<boolean> => {
     if (allocationItems && index >= 0 && index < allocationItems.length) {
-      return deleteAllocationItem(index);
+      return deleteAllocationItem(index) || Promise.resolve(true);
     }
     return Promise.resolve(false);
   };
@@ -105,7 +106,10 @@ const PortfolioEdit = () => {
           </div>
           <p className="text-muted-foreground">Modifique os detalhes da sua carteira</p>
         </div>
-        <DeletePortfolioDialog onDelete={deletePortfolio} />
+        <DeletePortfolioDialog 
+          portfolioId={id || ""}
+          onDelete={deletePortfolio} 
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6">

@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Portfolio } from "@/hooks/portfolio/types";
 import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
 
-interface RebalanceAction {
+// Export the interface so it can be imported by other components
+export interface RebalanceAction {
   assetClass: string;
   currentPercentage: number;
   targetPercentage: number;
@@ -26,7 +27,7 @@ interface RebalanceRecord {
   actions: RebalanceAction[];
 }
 
-interface RebalanceFilters {
+export interface RebalanceFilters {
   threshold: number;
   showOnlyChanges: boolean;
   sortBy: string;
@@ -161,13 +162,12 @@ export const useRebalancing = (portfolioId?: string) => {
     return filtered;
   }, []);
   
-  const handleFilterChange = useCallback((actions: RebalanceAction[], filters: RebalanceFilters) => {
-    if (!actions) return [];
+  const handleFilterChange = useCallback((filters: RebalanceFilters) => {
+    if (!filteredActions) return;
     
-    const filtered = applyFilters(actions, filters);
+    const filtered = applyFilters(filteredActions, filters);
     setFilteredActions(filtered);
-    return filtered;
-  }, [applyFilters]);
+  }, [applyFilters, filteredActions]);
   
   const viewRebalanceDetails = useCallback((id: string) => {
     const rebalance = history.find(item => item.id === id);

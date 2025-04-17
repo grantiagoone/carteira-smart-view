@@ -18,6 +18,9 @@ const PortfolioHeader = ({
   onRefreshPrices,
   onDelete
 }: PortfolioHeaderProps) => {
+  // Convert portfolio.id to a number for the Edit link
+  const portfolioIdAsNumber = typeof portfolio.id === 'string' ? parseInt(portfolio.id) : portfolio.id;
+  
   return (
     <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
       <div>
@@ -37,7 +40,7 @@ const PortfolioHeader = ({
           {isUpdating ? 'Atualizando...' : 'Atualizar Preços'}
         </Button>
         <Button asChild>
-          <Link to={`/portfolio/${typeof portfolio.id === 'number' ? portfolio.id : parseInt(portfolio.id as string)}/edit`}>
+          <Link to={`/portfolio/${portfolioIdAsNumber}/edit`}>
             <Edit className="mr-2 h-4 w-4" />
             Editar Carteira
           </Link>
