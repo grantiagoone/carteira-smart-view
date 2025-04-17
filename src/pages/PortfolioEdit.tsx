@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose
 } from "@/components/ui/dialog";
 import { ColorPicker } from "@/components/portfolios/ColorPicker";
 
@@ -272,10 +273,14 @@ const PortfolioEdit = () => {
                               </DialogDescription>
                             </DialogHeader>
                             <DialogFooter>
-                              <Button variant="outline" onClick={() => {}}>Cancelar</Button>
+                              <DialogClose asChild>
+                                <Button variant="outline">Cancelar</Button>
+                              </DialogClose>
                               <Button 
                                 variant="destructive" 
-                                onClick={() => handleDeleteAllocation(item.name)}
+                                onClick={() => {
+                                  handleDeleteAllocation(item.name);
+                                }}
                               >
                                 Excluir
                               </Button>
