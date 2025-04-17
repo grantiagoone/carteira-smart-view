@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Portfolio, AllocationItem } from "./types";
+import { Portfolio, AllocationItem, allocationItemsToJson } from "./types";
 import { Asset } from "@/services/brapiService";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -11,12 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 const formSchema = z.object({
   name: z.string().min(2, "Nome da carteira deve ter pelo menos 2 caracteres"),
-  value: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: "Valor deve ser um número positivo",
-  }),
-  returnPercentage: z.string().refine((val) => !isNaN(Number(val)), {
-    message: "O retorno deve ser um número válido",
-  }),
+  description: z.string().optional(),
 });
 
 export type PortfolioFormValues = z.infer<typeof formSchema>;
@@ -35,8 +30,7 @@ export const usePortfolioEdit = (
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: portfolio?.name || "",
-      value: portfolio?.value?.toString() || "0",
-      returnPercentage: portfolio?.returnPercentage?.toString() || "0",
+      description: "",
     },
   });
 
@@ -45,63 +39,64 @@ export const usePortfolioEdit = (
     
     const totalAllocation = allocationItems.reduce((sum, item) => sum + item.value, 0);
     if (totalAllocation !== 100) {
-      toast("A alocação total deve ser 100%");
+      toast.error("A alocação total deve ser 100%");
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      
-      if (!userId) {
-        toast("Você precisa estar logado para salvar alterações");
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        toast.error("Você precisa estar logado para salvar alterações");
         return;
       }
-      
-      const storageKey = `portfolios_${userId}`;
-      const savedPortfolios = localStorage.getItem(storageKey);
-      
-      if (savedPortfolios) {
-        const portfolios = JSON.parse(savedPortfolios);
-        const portfolioIndex = portfolios.findIndex((p: any) => p.id === Number(portfolio.id));
-        
-        if (portfolioIndex !== -1) {
-          let totalValue = Number(values.value);
-          
-          const updatedAssets = selectedAssets.map(asset => ({
-            ...asset,
-            quantity: assetQuantities[asset.id] || 0
-          }));
-          
-          if (updatedAssets.some(a => a.quantity > 0)) {
-            totalValue = updatedAssets.reduce((sum, asset) => {
-              return sum + (asset.price * (assetQuantities[asset.id] || 0));
-            }, 0);
-          }
-          
-          portfolios[portfolioIndex] = {
-            ...portfolios[portfolioIndex],
-            name: values.name,
-            value: totalValue,
-            returnPercentage: Number(values.returnPercentage),
-            returnValue: (totalValue * Number(values.returnPercentage)) / 100,
-            allocationData: allocationItems,
-            assets: updatedAssets,
-            assetRatings: assetRatings
-          };
-          
-          localStorage.setItem(storageKey, JSON.stringify(portfolios));
-          
-          toast("Carteira atualizada com sucesso");
-          
-          navigate(`/portfolio/${portfolio.id}`);
-        }
+
+      // Update portfolio data in Supabase
+      const { error: portfolioError } = await supabase
+        .from('portfolios')
+        .update({
+          name: values.name,
+          allocation_data: allocationItemsToJson(allocationItems),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', portfolio.id);
+
+      if (portfolioError) throw portfolioError;
+
+      // Handle assets
+      if (selectedAssets.length > 0) {
+        // First delete all existing assets for this portfolio
+        const { error: deleteError } = await supabase
+          .from('portfolio_assets')
+          .delete()
+          .eq('portfolio_id', portfolio.id);
+
+        if (deleteError) throw deleteError;
+
+        // Then insert the updated assets
+        const portfolioAssets = selectedAssets.map(asset => ({
+          portfolio_id: portfolio.id,
+          user_id: session.session.user.id,
+          ticker: asset.ticker,
+          name: asset.name,
+          type: asset.type,
+          price: asset.price,
+          quantity: assetQuantities[asset.id] || 0
+        }));
+
+        const { error: insertError } = await supabase
+          .from('portfolio_assets')
+          .insert(portfolioAssets);
+
+        if (insertError) throw insertError;
       }
+      
+      toast.success("Carteira atualizada com sucesso");
+      navigate(`/portfolio/${portfolio.id}`);
     } catch (error) {
       console.error("Erro ao atualizar carteira:", error);
-      toast("Erro ao atualizar carteira");
+      toast.error("Erro ao atualizar carteira");
     } finally {
       setIsSubmitting(false);
     }

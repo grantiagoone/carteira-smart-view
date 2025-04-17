@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Portfolio } from "./types";
+import { Portfolio, Asset, jsonToAllocationItems, calculatePortfolioValue } from "./types";
 import { toast } from "sonner";
 
 export const useSupabasePortfolio = (portfolioId?: string) => {
@@ -31,9 +31,34 @@ export const useSupabasePortfolio = (portfolioId?: string) => {
 
       if (assetsError) throw assetsError;
 
+      // Transform assets data to match our Asset type
+      const transformedAssets: Asset[] = assetsData?.map(asset => ({
+        id: asset.id,
+        ticker: asset.ticker,
+        name: asset.name,
+        type: asset.type || '',
+        price: Number(asset.price) || 0,
+        quantity: Number(asset.quantity) || 0
+      })) || [];
+
+      // Transform the data to match our Portfolio type
+      const allocationData = jsonToAllocationItems(portfolioData.allocation_data);
+      const portfolioValue = calculatePortfolioValue(transformedAssets);
+      
+      // For now, we'll use placeholder values for return data
+      // In a real app, you'd calculate this based on historical data
+      const returnPercentage = 0;
+      const returnValue = 0;
+
       return {
-        ...portfolioData,
-        assets: assetsData || []
+        id: portfolioData.id,
+        name: portfolioData.name,
+        value: portfolioValue,
+        returnPercentage: returnPercentage,
+        returnValue: returnValue,
+        allocationData: allocationData,
+        assets: transformedAssets,
+        assetRatings: {} // Default empty ratings
       };
     } catch (error) {
       console.error('Error fetching portfolio:', error);
@@ -44,7 +69,7 @@ export const useSupabasePortfolio = (portfolioId?: string) => {
 
   const deletePortfolio = async () => {
     try {
-      if (!portfolioId) return;
+      if (!portfolioId) return false;
 
       const { error } = await supabase
         .from('portfolios')
@@ -65,10 +90,10 @@ export const useSupabasePortfolio = (portfolioId?: string) => {
   const refreshPrices = async () => {
     setIsUpdating(true);
     try {
-      if (!portfolioId || !portfolio?.assets) return false;
+      if (!portfolioId || !portfolio) return false;
 
-      // Here you would implement your price update logic
-      // For now, we'll just refresh the portfolio data
+      // Here we would update prices from an external API
+      // For now, we'll just refresh portfolio data
       const updatedPortfolio = await fetchPortfolio();
       if (updatedPortfolio) {
         setPortfolio(updatedPortfolio);

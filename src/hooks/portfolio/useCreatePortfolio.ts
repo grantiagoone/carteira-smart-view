@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Asset, AllocationItem } from "./types";
+import { Asset, AllocationItem, allocationItemsToJson } from "./types";
 
 export const useCreatePortfolio = () => {
   const [loading, setLoading] = useState(false);
@@ -21,13 +21,16 @@ export const useCreatePortfolio = () => {
         return null;
       }
 
+      // Convert AllocationItem[] to Json for Supabase
+      const allocationDataJson = allocationItemsToJson(allocationData);
+
       // Create portfolio
       const { data: portfolio, error: portfolioError } = await supabase
         .from('portfolios')
         .insert({
           name,
           description,
-          allocation_data: allocationData,
+          allocation_data: allocationDataJson,
           user_id: session.session.user.id
         })
         .select()
