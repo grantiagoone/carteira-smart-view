@@ -58,7 +58,7 @@ export async function searchAssets(query: string): Promise<Asset[]> {
   try {
     const token = localStorage.getItem('BRAPI_TOKEN');
     
-    // URL correta com base na documentação
+    // Formato correto da URL conforme a documentação da BRAPI
     const url = `${BASE_URL}/quote/list?search=${encodeURIComponent(query)}${token ? `&token=${token}` : ''}`;
     
     console.log("Realizando busca de ativos com URL:", url);
@@ -72,10 +72,10 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     const data: BrapiAssetResponse = await response.json();
     console.log("Resposta da API:", data);
     
-    // Handle different API response formats
+    // Tratamento para diferentes formatos de resposta da API
     let assets: Asset[] = [];
     
-    // Handle the results array format (old API format)
+    // Tratamento para o formato results (formato antigo da API)
     if (data.results && Array.isArray(data.results) && data.results.length > 0) {
       assets = data.results.map(item => ({
         id: item.symbol,
@@ -86,7 +86,7 @@ export async function searchAssets(query: string): Promise<Asset[]> {
         change: item.regularMarketChangePercent
       }));
     } 
-    // Handle the stocks array format (new API format)
+    // Tratamento para o formato stocks (novo formato da API)
     else if (data.stocks && Array.isArray(data.stocks) && data.stocks.length > 0) {
       assets = data.stocks.map(item => ({
         id: item.stock,
@@ -107,7 +107,7 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     return assets;
   } catch (error) {
     console.error("Erro ao buscar ativos:", error);
-    throw error; // Re-throw to allow for proper error handling in components
+    throw error;
   }
 }
 
@@ -115,7 +115,7 @@ export async function getAssetPrice(ticker: string): Promise<number | null> {
   try {
     const token = localStorage.getItem('BRAPI_TOKEN');
     
-    // URL correta com base na documentação
+    // Formato correto da URL conforme a documentação da BRAPI
     const url = `${BASE_URL}/quote/${encodeURIComponent(ticker)}${token ? `?token=${token}` : ''}`;
     
     const response = await fetch(url);
