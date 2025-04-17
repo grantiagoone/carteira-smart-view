@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,14 +74,8 @@ const Rebalance = () => {
     loadUserPortfolios();
   }, []);
 
-  // Update the rebalancing calculation when the portfolio changes
-  useEffect(() => {
-    if (selectedPortfolio) {
-      calculateRebalancing(selectedPortfolio);
-    }
-  }, [selectedPortfolio]);
-
-  const calculateRebalancing = (portfolio: Portfolio) => {
+  // Memoize the calculation function to prevent recreating it on every render
+  const calculateRebalancing = useCallback((portfolio: Portfolio) => {
     if (!portfolio || !portfolio.allocationData) {
       console.log("Portfolio or allocation data is missing");
       return;
@@ -145,11 +139,25 @@ const Rebalance = () => {
     });
     
     setRebalanceActions(actions);
-  };
+  }, []);
 
-  const handlePortfolioChange = (value: string) => {
+  // Update the rebalancing calculation when the portfolio changes
+  useEffect(() => {
+    if (selectedPortfolio) {
+      calculateRebalancing(selectedPortfolio);
+    }
+  }, [selectedPortfolio, calculateRebalancing]);
+
+  const handlePortfolioChange = useCallback((value: string) => {
     setSelectedPortfolioId(value);
-  };
+  }, []);
+
+  const handleUpdateAnalysis = useCallback(() => {
+    if (selectedPortfolio) {
+      calculateRebalancing(selectedPortfolio);
+      toast.success("Análise de rebalanceamento atualizada");
+    }
+  }, [selectedPortfolio, calculateRebalancing]);
 
   // Memoize the allocation charts to prevent unnecessary re-renders
   const currentAllocationChart = useMemo(() => (
@@ -160,19 +168,39 @@ const Rebalance = () => {
     <AllocationChart data={targetAllocation} />
   ), [targetAllocation]);
 
-  const handleUpdateAnalysis = () => {
-    if (selectedPortfolio) {
-      calculateRebalancing(selectedPortfolio);
-      toast.success("Análise de rebalanceamento atualizada");
-    }
-  };
+  // Memoize the empty state UI to prevent re-renders
+  const emptyStateUI = useMemo(() => (
+    <Card className="p-6 bg-white border border-slate-200 shadow-md rounded-lg">
+      <CardContent className="flex flex-col items-center justify-center py-12 px-4 text-center">
+        <div className="bg-primary/10 rounded-full p-4 mb-4">
+          <Wallet className="h-12 w-12 text-primary" />
+        </div>
+        <h3 className="text-2xl font-bold mb-2">Nenhuma carteira encontrada</h3>
+        <p className="text-muted-foreground mb-6 max-w-md">
+          Você precisa adicionar pelo menos uma carteira para utilizar o rebalanceamento.
+          Adicione sua primeira carteira para começar.
+        </p>
+        <Button asChild size="lg" className="investeja-button">
+          <Link to="/portfolio/new" className="flex items-center">
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Carteira
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  ), []);
+
+  // Memoize the loading UI to prevent re-renders
+  const loadingUI = useMemo(() => (
+    <div className="flex items-center justify-center h-[50vh]">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  ), []);
 
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+        {loadingUI}
       </DashboardLayout>
     );
   }
@@ -186,24 +214,7 @@ const Rebalance = () => {
           <p className="text-muted-foreground">Analise e rebalanceie suas carteiras para manter a estratégia alinhada</p>
         </div>
         
-        <Card className="p-6 bg-white border border-slate-200 shadow-md rounded-lg">
-          <CardContent className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <div className="bg-primary/10 rounded-full p-4 mb-4">
-              <Wallet className="h-12 w-12 text-primary" />
-            </div>
-            <h3 className="text-2xl font-bold mb-2">Nenhuma carteira encontrada</h3>
-            <p className="text-muted-foreground mb-6 max-w-md">
-              Você precisa adicionar pelo menos uma carteira para utilizar o rebalanceamento.
-              Adicione sua primeira carteira para começar.
-            </p>
-            <Button asChild size="lg" className="investeja-button">
-              <Link to="/portfolio/new" className="flex items-center">
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Carteira
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+        {emptyStateUI}
       </DashboardLayout>
     );
   }
@@ -382,4 +393,4 @@ const Rebalance = () => {
   );
 };
 
-export default Rebalance;
+export default React.memo(Rebalance);

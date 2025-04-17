@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormLabel } from "@/components/ui/form";
@@ -31,6 +31,47 @@ const AllocationEditor = ({
     setShowWarning(total !== 100);
   }, [allocationItems]);
 
+  // Memoize the allocation warning to prevent re-renders
+  const allocationWarning = useMemo(() => {
+    if (showWarning) {
+      return (
+        <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            A alocação total deve ser 100%. Atualmente: {totalAllocation}%
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return null;
+  }, [showWarning, totalAllocation]);
+
+  // Memoize the empty state UI to prevent re-renders
+  const emptyStateUI = useMemo(() => (
+    <div className="text-center py-6 border border-dashed rounded-md bg-muted/50">
+      <p className="text-muted-foreground">Nenhuma alocação definida</p>
+      <Button 
+        type="button" 
+        variant="outline" 
+        onClick={addAllocationItem}
+        className="mt-2"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Adicionar Classe de Ativo
+      </Button>
+    </div>
+  ), [addAllocationItem]);
+
+  // Memoize the allocation total summary to prevent re-renders
+  const allocationTotal = useMemo(() => (
+    <div className="mt-2 flex justify-between items-center py-2 px-4 bg-muted/50 rounded-md">
+      <span className="font-medium">Total:</span>
+      <span className={totalAllocation !== 100 ? "text-destructive font-bold" : "font-bold"}>
+        {totalAllocation}%
+      </span>
+    </div>
+  ), [totalAllocation]);
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -41,28 +82,10 @@ const AllocationEditor = ({
         </Button>
       </div>
 
-      {showWarning && (
-        <Alert variant="warning">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            A alocação total deve ser 100%. Atualmente: {totalAllocation}%
-          </AlertDescription>
-        </Alert>
-      )}
+      {allocationWarning}
 
       {allocationItems.length === 0 ? (
-        <div className="text-center py-6 border border-dashed rounded-md bg-muted/50">
-          <p className="text-muted-foreground">Nenhuma alocação definida</p>
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={addAllocationItem}
-            className="mt-2"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Classe de Ativo
-          </Button>
-        </div>
+        emptyStateUI
       ) : (
         <div className="grid gap-4">
           {allocationItems.map((item, index) => (
@@ -123,16 +146,11 @@ const AllocationEditor = ({
             </div>
           ))}
 
-          <div className="mt-2 flex justify-between items-center py-2 px-4 bg-muted/50 rounded-md">
-            <span className="font-medium">Total:</span>
-            <span className={totalAllocation !== 100 ? "text-destructive font-bold" : "font-bold"}>
-              {totalAllocation}%
-            </span>
-          </div>
+          {allocationItems.length > 0 && allocationTotal}
         </div>
       )}
     </div>
   );
 };
 
-export default AllocationEditor;
+export default React.memo(AllocationEditor);

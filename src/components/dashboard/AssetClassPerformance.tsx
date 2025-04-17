@@ -105,67 +105,72 @@ const AssetClassPerformance = ({ portfolioId }: AssetClassPerformanceProps) => {
   }, [portfolioId, defaultData]);
 
   // Process data to include color based on performance
+  // Memoize processed data to prevent unnecessary recalculations
   const processedData = useMemo(() => {
     return data.map(item => ({
       ...item,
-      // Add color property to each data point
       color: item.performance >= 0 ? "#10b981" : "#ef4444"
     }));
   }, [data]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Memoize the entire chart component to prevent constant re-renders
+  const chartComponent = useMemo(() => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-[200px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
 
-  return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={processedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis 
-          dataKey="name"
-          axisLine={false}
-          tickLine={false}
-          tick={{ fontSize: 12 }}
-          dy={10}
-        />
-        <YAxis 
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={(value) => `${value}%`}
-          tick={{ fontSize: 12 }}
-        />
-        <Tooltip 
-          formatter={(value) => [`${value}%`, 'Retorno']}
-          labelStyle={{ fontWeight: 'bold', marginBottom: '5px' }}
-          contentStyle={{ 
-            borderRadius: '4px', 
-            padding: '8px 12px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #eaeaea',
-          }}
-        />
-        <Bar 
-          dataKey="performance" 
-          radius={[4, 4, 0, 0]} 
-          stroke="#10b981"
-          fillOpacity={1}
-          fill="#10b981"
-          name="Performance"
-        >
-          {processedData.map((entry, index) => (
-            <rect 
-              key={`rect-${index}`} 
-              fill={entry.color} 
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
+    return (
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={processedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis 
+            dataKey="name"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 12 }}
+            dy={10}
+          />
+          <YAxis 
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(value) => `${value}%`}
+            tick={{ fontSize: 12 }}
+          />
+          <Tooltip 
+            formatter={(value) => [`${value}%`, 'Retorno']}
+            labelStyle={{ fontWeight: 'bold', marginBottom: '5px' }}
+            contentStyle={{ 
+              borderRadius: '4px', 
+              padding: '8px 12px',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #eaeaea',
+            }}
+          />
+          <Bar 
+            dataKey="performance" 
+            radius={[4, 4, 0, 0]} 
+            stroke="#10b981"
+            fillOpacity={1}
+            fill="#10b981"
+            name="Performance"
+          >
+            {processedData.map((entry, index) => (
+              <rect 
+                key={`rect-${index}`} 
+                fill={entry.color} 
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }, [loading, processedData]);
+
+  return chartComponent;
 };
 
-export default AssetClassPerformance;
+export default React.memo(AssetClassPerformance);

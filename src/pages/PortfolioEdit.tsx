@@ -12,6 +12,7 @@ import DeletePortfolioDialog from "@/components/portfolios/DeletePortfolioDialog
 import AllocationEditor from "@/components/portfolios/edit/AllocationEditor";
 import PortfolioActions from "@/components/portfolios/edit/PortfolioActions";
 import { usePortfolioEdit } from "@/hooks/portfolio/usePortfolioEdit";
+import { useMemo } from "react";
 
 const PortfolioEdit = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,19 +41,22 @@ const PortfolioEdit = () => {
     assetRatings
   );
 
-  if (loading) {
-    return (
-      <DashboardLayout>
+  // Memoize the loading state to prevent re-renders
+  const loadingState = useMemo(() => {
+    if (loading) {
+      return (
         <div className="flex items-center justify-center h-[50vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </DashboardLayout>
-    );
-  }
+      );
+    }
+    return null;
+  }, [loading]);
 
-  if (!portfolio) {
-    return (
-      <DashboardLayout>
+  // Memoize the not found state to prevent re-renders
+  const notFoundState = useMemo(() => {
+    if (!portfolio && !loading) {
+      return (
         <div className="flex flex-col items-center justify-center h-[50vh]">
           <h2 className="text-2xl font-medium mb-2">Carteira não encontrada</h2>
           <Button asChild>
@@ -62,6 +66,23 @@ const PortfolioEdit = () => {
             </Link>
           </Button>
         </div>
+      );
+    }
+    return null;
+  }, [portfolio, loading]);
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        {loadingState}
+      </DashboardLayout>
+    );
+  }
+
+  if (!portfolio) {
+    return (
+      <DashboardLayout>
+        {notFoundState}
       </DashboardLayout>
     );
   }
