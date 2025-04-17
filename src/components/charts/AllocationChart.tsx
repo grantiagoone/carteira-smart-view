@@ -1,5 +1,6 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { useMemo } from "react";
 
 interface ChartData {
   name: string;
@@ -12,12 +13,15 @@ interface AllocationChartProps {
 }
 
 const AllocationChart = ({ data }: AllocationChartProps) => {
+  // Memoize data to prevent unnecessary re-renders and ensure labels are up to date
+  const chartData = useMemo(() => data, [data]);
+
   return (
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={data}
+            data={chartData}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -26,7 +30,7 @@ const AllocationChart = ({ data }: AllocationChartProps) => {
             dataKey="value"
             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
           >
-            {data.map((entry, index) => (
+            {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>

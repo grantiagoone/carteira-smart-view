@@ -56,8 +56,8 @@ const Rebalance = () => {
           const userPortfolios = getAllPortfoliosFromStorage(userId);
           setPortfolios(userPortfolios || []);
           
-          // Select first portfolio if exists
-          if (userPortfolios && userPortfolios.length > 0) {
+          // Select first portfolio if exists and no portfolio is currently selected
+          if (userPortfolios && userPortfolios.length > 0 && !selectedPortfolioId) {
             setSelectedPortfolioId(userPortfolios[0].id.toString());
           }
         } else {
@@ -160,6 +160,13 @@ const Rebalance = () => {
     <AllocationChart data={targetAllocation} />
   ), [targetAllocation]);
 
+  const handleUpdateAnalysis = () => {
+    if (selectedPortfolio) {
+      calculateRebalancing(selectedPortfolio);
+      toast.success("Análise de rebalanceamento atualizada");
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -227,7 +234,7 @@ const Rebalance = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => selectedPortfolio && calculateRebalancing(selectedPortfolio)}>
+          <Button onClick={handleUpdateAnalysis}>
             Atualizar Análise
           </Button>
         </div>

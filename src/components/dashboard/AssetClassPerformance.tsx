@@ -155,6 +155,7 @@ const AssetClassPerformance = ({ portfolioId }: AssetClassPerformanceProps) => {
           stroke="#10b981"
           fillOpacity={1}
           // Use the color property from our processed data
+          fill={(entry) => entry.color}
           name="Performance"
         />
       </BarChart>
