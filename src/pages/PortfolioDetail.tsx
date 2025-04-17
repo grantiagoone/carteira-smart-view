@@ -7,60 +7,12 @@ import { ArrowLeft, Edit, Wallet } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import AllocationChart from "@/components/charts/AllocationChart";
 import { toast } from "@/hooks/use-toast";
-
-interface Portfolio {
-  id: number;
-  name: string;
-  value: number;
-  returnPercentage: number;
-  returnValue: number;
-  allocationData: Array<{
-    name: string;
-    value: number;
-    color: string;
-  }>;
-}
+import { usePortfolio } from "@/hooks/usePortfolio";
+import DeletePortfolioDialog from "@/components/portfolios/DeletePortfolioDialog";
 
 const PortfolioDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchPortfolio = () => {
-      setLoading(true);
-      try {
-        const savedPortfolios = localStorage.getItem('portfolios');
-        if (savedPortfolios) {
-          const portfolios: Portfolio[] = JSON.parse(savedPortfolios);
-          const foundPortfolio = portfolios.find(p => p.id === Number(id));
-          
-          if (foundPortfolio) {
-            setPortfolio(foundPortfolio);
-          } else {
-            toast({
-              title: "Carteira não encontrada",
-              description: "A carteira solicitada não foi encontrada",
-              variant: "destructive"
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Erro ao carregar carteira:", error);
-        toast({
-          title: "Erro ao carregar carteira",
-          description: "Ocorreu um erro ao tentar carregar os dados da carteira",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchPortfolio();
-    }
-  }, [id]);
+  const { portfolio, loading, deletePortfolio } = usePortfolio(id);
 
   if (loading) {
     return (
@@ -104,12 +56,15 @@ const PortfolioDetail = () => {
           </div>
           <p className="text-muted-foreground">Detalhes e alocação da carteira</p>
         </div>
-        <Button className="mt-4 sm:mt-0" asChild>
-          <Link to={`/portfolio/${portfolio.id}/edit`}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar Carteira
-          </Link>
-        </Button>
+        <div className="flex gap-2 mt-4 sm:mt-0">
+          <Button asChild>
+            <Link to={`/portfolio/${portfolio.id}/edit`}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar Carteira
+            </Link>
+          </Button>
+          <DeletePortfolioDialog onDelete={deletePortfolio} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
