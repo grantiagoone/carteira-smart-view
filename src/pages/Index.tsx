@@ -12,11 +12,21 @@ import AssetClassPerformance from "@/components/dashboard/AssetClassPerformance"
 import WelcomeModal from "@/components/modals/WelcomeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
+import { Portfolio } from "@/hooks/portfolio/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Index = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [hasPortfolios, setHasPortfolios] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | null>(null);
   
   useEffect(() => {
     // Check if there are portfolios in localStorage for the current user
@@ -30,13 +40,21 @@ const Index = () => {
         
         if (userId) {
           const userPortfolios = getAllPortfoliosFromStorage(userId);
+          setPortfolios(userPortfolios);
           setHasPortfolios(userPortfolios && userPortfolios.length > 0);
+          
+          // Set first portfolio as selected by default if any exist
+          if (userPortfolios && userPortfolios.length > 0) {
+            setSelectedPortfolioId(userPortfolios[0].id.toString());
+          }
         } else {
           setHasPortfolios(false);
+          setPortfolios([]);
         }
       } catch (error) {
         console.error("Erro ao verificar carteiras:", error);
         setHasPortfolios(false);
+        setPortfolios([]);
       } finally {
         setLoading(false);
       }
@@ -44,6 +62,13 @@ const Index = () => {
     
     loadUserPortfolios();
   }, []);
+
+  const selectedPortfolio = portfolios.find(p => p.id.toString() === selectedPortfolioId);
+  
+  // Handler for portfolio selection change
+  const handlePortfolioChange = (value: string) => {
+    setSelectedPortfolioId(value);
+  };
 
   return (
     <DashboardLayout>
@@ -72,7 +97,30 @@ const Index = () => {
         </div>
       </div>
       
-      <PortfolioSummary />
+      {hasPortfolios && (
+        <div className="bg-white p-4 mb-6 rounded-lg shadow flex flex-col sm:flex-row items-start sm:items-center justify-between">
+          <div className="flex items-center">
+            <Wallet className="h-5 w-5 text-primary mr-2" />
+            <span className="font-medium">Selecionar Carteira</span>
+          </div>
+          <div className="w-full sm:w-64 mt-2 sm:mt-0">
+            <Select value={selectedPortfolioId || ""} onValueChange={handlePortfolioChange}>
+              <SelectTrigger className="border-primary">
+                <SelectValue placeholder="Selecione uma carteira" />
+              </SelectTrigger>
+              <SelectContent>
+                {portfolios.map((portfolio) => (
+                  <SelectItem key={portfolio.id} value={portfolio.id.toString()}>
+                    {portfolio.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+      
+      <PortfolioSummary selectedPortfolioId={selectedPortfolioId} />
       
       {hasPortfolios && (
         <>
@@ -83,18 +131,22 @@ const Index = () => {
                 <ChartPie className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent className="pt-4">
-                <AllocationChart 
-                  data={[
-                    { name: 'Ações', value: 35, color: '#ea384c' },
-                    { name: 'FIIs', value: 25, color: '#222' },
-                    { name: 'Renda Fixa', value: 30, color: '#f97316' },
-                    { name: 'Internacional', value: 10, color: '#6B7280' }
-                  ]} 
-                />
+                {selectedPortfolio ? (
+                  <AllocationChart data={selectedPortfolio.allocationData} />
+                ) : (
+                  <AllocationChart 
+                    data={[
+                      { name: 'Ações', value: 35, color: '#ea384c' },
+                      { name: 'FIIs', value: 25, color: '#222' },
+                      { name: 'Renda Fixa', value: 30, color: '#f97316' },
+                      { name: 'Internacional', value: 10, color: '#6B7280' }
+                    ]} 
+                  />
+                )}
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" asChild>
-                  <Link to="/portfolios">Ver Detalhes</Link>
+                  <Link to={selectedPortfolioId ? `/portfolio/${selectedPortfolioId}` : "/portfolios"}>Ver Detalhes</Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -105,7 +157,7 @@ const Index = () => {
                 <BarChart3 className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent className="pt-4">
-                <AssetClassPerformance />
+                <AssetClassPerformance portfolioId={selectedPortfolioId} />
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" asChild>
@@ -121,7 +173,7 @@ const Index = () => {
               <CardDescription>Veja seus últimos aportes e as alocações sugeridas</CardDescription>
             </CardHeader>
             <CardContent>
-              <RecentContributionsList />
+              <RecentContributionsList portfolioId={selectedPortfolioId} />
             </CardContent>
             <CardFooter>
               <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" asChild>

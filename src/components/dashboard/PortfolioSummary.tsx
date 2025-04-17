@@ -6,14 +6,20 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
+import { Portfolio } from "@/hooks/portfolio/types";
 
-const PortfolioSummary = () => {
+interface PortfolioSummaryProps {
+  selectedPortfolioId?: string | null;
+}
+
+const PortfolioSummary = ({ selectedPortfolioId }: PortfolioSummaryProps) => {
   const [hasPortfolios, setHasPortfolios] = useState(false);
   const [loading, setLoading] = useState(true);
   const [totalValue, setTotalValue] = useState(0);
   const [portfolioCount, setPortfolioCount] = useState(0);
   const [averageReturn, setAverageReturn] = useState(0);
   const [lastContribution, setLastContribution] = useState<{amount: number, date: string} | null>(null);
+  const [allocationDifference, setAllocationDifference] = useState(0);
   
   useEffect(() => {
     const loadUserPortfolios = async () => {
@@ -30,15 +36,25 @@ const PortfolioSummary = () => {
           setHasPortfolios(userPortfolios && userPortfolios.length > 0);
           
           if (userPortfolios && userPortfolios.length > 0) {
+            let portfoliosToCalculate: Portfolio[] = userPortfolios;
+            
+            // Filter by selected portfolio if one is selected
+            if (selectedPortfolioId) {
+              const selectedPortfolio = userPortfolios.find(p => p.id.toString() === selectedPortfolioId);
+              if (selectedPortfolio) {
+                portfoliosToCalculate = [selectedPortfolio];
+              }
+            }
+            
             // Calculate total value and average return
-            const total = userPortfolios.reduce((sum, p) => sum + p.value, 0);
+            const total = portfoliosToCalculate.reduce((sum, p) => sum + p.value, 0);
             setTotalValue(total);
             
             // Count portfolios
-            setPortfolioCount(userPortfolios.length);
+            setPortfolioCount(selectedPortfolioId ? 1 : userPortfolios.length);
             
             // Calculate weighted average return
-            const weightedReturn = userPortfolios.reduce((sum, p) => {
+            const weightedReturn = portfoliosToCalculate.reduce((sum, p) => {
               return sum + (p.returnPercentage * p.value);
             }, 0);
             
@@ -47,18 +63,31 @@ const PortfolioSummary = () => {
             // Find last contribution if any
             const contributionHistory = JSON.parse(localStorage.getItem(`contributions_${userId}`) || '[]');
             if (contributionHistory && contributionHistory.length > 0) {
-              const latest = contributionHistory[0]; // Assuming sorted by date
-              setLastContribution({
-                amount: latest.amount,
-                date: latest.date
-              });
+              // Filter contributions by portfolio if one is selected
+              const relevantContributions = selectedPortfolioId
+                ? contributionHistory.filter((c: any) => c.portfolioId === selectedPortfolioId)
+                : contributionHistory;
+                
+              if (relevantContributions.length > 0) {
+                const latest = relevantContributions[0]; // Assuming sorted by date
+                setLastContribution({
+                  amount: latest.amount,
+                  date: latest.date
+                });
+              } else {
+                setLastContribution(null);
+              }
             }
+            
+            // Calculate allocation difference (mock data for now)
+            setAllocationDifference(selectedPortfolioId ? 8 : 5);
           } else {
             // No portfolios, clear all data
             setTotalValue(0);
             setPortfolioCount(0);
             setAverageReturn(0);
             setLastContribution(null);
+            setAllocationDifference(0);
           }
         } else {
           // User not logged in, show empty state
@@ -73,7 +102,7 @@ const PortfolioSummary = () => {
     };
     
     loadUserPortfolios();
-  }, []);
+  }, [selectedPortfolioId]);
 
   if (loading) {
     return (
@@ -184,7 +213,7 @@ const PortfolioSummary = () => {
             </div>
           </div>
           <div className="flex items-baseline space-x-2">
-            <h3 className="text-2xl font-bold">8%</h3>
+            <h3 className="text-2xl font-bold">{allocationDifference}%</h3>
             <span className="text-xs text-muted-foreground">
               de diferença
             </span>
