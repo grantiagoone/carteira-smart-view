@@ -1,15 +1,16 @@
 
 import { useParams } from "react-router-dom";
-import { Wallet } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Wallet, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { usePortfolio } from "@/hooks/usePortfolio";
-import { calculateRebalancingSuggestions } from "@/hooks/portfolio/types";
 import { useMemo } from "react";
 import PortfolioHeader from "@/components/portfolios/detail/PortfolioHeader";
 import PortfolioSummary from "@/components/portfolios/detail/PortfolioSummary";
 import PortfolioAllocationChart from "@/components/portfolios/detail/PortfolioAllocationChart";
 import PortfolioAssetsTable from "@/components/portfolios/detail/PortfolioAssetsTable";
+import { calculateRebalancingSuggestions } from "@/hooks/portfolio/types";
 
 const PortfolioDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -78,13 +79,23 @@ const PortfolioDetail = () => {
     );
   }
 
+  // Convert callback types to ensure compatibility
+  const handleDelete = async () => {
+    const result = await deletePortfolio();
+    return result === undefined ? true : result;
+  };
+
+  const handleRefreshPrices = async () => {
+    await refreshPrices();
+  };
+
   return (
     <DashboardLayout>
       <PortfolioHeader 
         portfolio={portfolio}
         isUpdating={isUpdating}
-        onRefreshPrices={refreshPrices}
-        onDelete={deletePortfolio}
+        onRefreshPrices={handleRefreshPrices}
+        onDelete={handleDelete}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

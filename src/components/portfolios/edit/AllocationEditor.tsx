@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ const AllocationEditor = ({
   const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
-    const total = allocationItems.reduce((sum, item) => sum + item.value, 0);
+    const total = allocationItems.reduce((sum, item) => sum + Number(item.value), 0);
     setTotalAllocation(total);
     setShowWarning(total !== 100);
   }, [allocationItems]);
@@ -69,14 +70,7 @@ const AllocationEditor = ({
 
   const handleDeleteAllocationItem = (index: number) => {
     if (typeof deleteAllocationItem === 'function') {
-      if (allocationItems[index]) {
-        const itemName = allocationItems[index].name;
-        if (deleteAllocationItem.length === 1) {
-          return deleteAllocationItem(itemName);
-        } else {
-          return deleteAllocationItem(index);
-        }
-      }
+      deleteAllocationItem(index);
     }
   };
 
