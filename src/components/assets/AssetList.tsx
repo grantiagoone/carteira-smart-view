@@ -3,7 +3,7 @@ import { Asset } from "./AssetSearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface AssetListProps {
   assets: Asset[];
@@ -19,6 +19,23 @@ export const AssetList = ({
   title = "Ativos Selecionados"
 }: AssetListProps) => {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+
+  // Initialize quantities from asset.quantity if available
+  useEffect(() => {
+    const initialQuantities: Record<string, number> = {};
+    assets.forEach(asset => {
+      if (asset.quantity !== undefined) {
+        initialQuantities[asset.id] = asset.quantity;
+      }
+    });
+    
+    if (Object.keys(initialQuantities).length > 0) {
+      setQuantities(prev => ({
+        ...prev,
+        ...initialQuantities
+      }));
+    }
+  }, [assets]);
 
   const handleQuantityChange = (assetId: string, value: string) => {
     const quantity = parseFloat(value) || 0;

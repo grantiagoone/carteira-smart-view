@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Search, Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ export interface Asset {
   price: number;
   type: "stock" | "reit" | "fixed_income" | "international";
   change?: number;
+  quantity?: number; // Added quantity property as optional
 }
 
 // Sample asset data (in a real app, this would come from an API)
