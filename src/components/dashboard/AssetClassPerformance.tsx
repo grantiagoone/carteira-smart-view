@@ -15,6 +15,11 @@ const AssetClassPerformance = ({ portfolioId }: AssetClassPerformanceProps) => {
     { name: 'Internacional', performance: -2.3 },
   ];
 
+  // Create a custom color function that returns different colors based on performance
+  const getBarColor = (entry: any) => {
+    return entry.performance >= 0 ? "#10b981" : "#ef4444";
+  };
+
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -44,11 +49,12 @@ const AssetClassPerformance = ({ portfolioId }: AssetClassPerformanceProps) => {
         />
         <Bar 
           dataKey="performance" 
-          fill={(entry) => {
-            // Fixed TypeScript error by explicitly returning a string
-            return entry.performance >= 0 ? "#10b981" : "#ef4444";
-          }} 
+          fill="#10b981"  
           radius={[4, 4, 0, 0]} 
+          // Use the fillOpacity property with a function instead of fill with function
+          fillOpacity={1}
+          stroke={(entry) => entry.performance >= 0 ? "#10b981" : "#ef4444"}
+          strokeWidth={2}
         />
       </BarChart>
     </ResponsiveContainer>
