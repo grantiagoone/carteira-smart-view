@@ -1,4 +1,3 @@
-
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import AllocationChart from "@/components/charts/AllocationChart";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import DeletePortfolioDialog from "@/components/portfolios/DeletePortfolioDialog";
+import { useMemo } from "react";
 
 const PortfolioDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +39,36 @@ const PortfolioDetail = () => {
       </DashboardLayout>
     );
   }
+
+  const calculateCurrentAllocation = useMemo(() => {
+    if (!portfolio?.assets || portfolio.assets.length === 0) return [];
+
+    const totalValue = portfolio.assets.reduce((sum, asset) => {
+      return sum + (asset.price * (asset.quantity || 0));
+    }, 0);
+
+    const allocationGroups: Record<string, number> = {};
+    
+    portfolio.assets.forEach(asset => {
+      const assetValue = asset.price * (asset.quantity || 0);
+      const assetType = asset.type || 'Ações';
+      
+      if (allocationGroups[assetType]) {
+        allocationGroups[assetType] += assetValue;
+      } else {
+        allocationGroups[assetType] = assetValue;
+      }
+    });
+
+    return Object.entries(allocationGroups).map(([name, value]) => {
+      const matchingAllocation = portfolio.allocationData.find(a => a.name === name);
+      return {
+        name,
+        value: Number(((value / totalValue) * 100).toFixed(2)),
+        color: matchingAllocation?.color || '#' + Math.floor(Math.random()*16777215).toString(16)
+      };
+    });
+  }, [portfolio?.assets, portfolio?.allocationData]);
 
   return (
     <DashboardLayout>
@@ -97,10 +127,26 @@ const PortfolioDetail = () => {
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Alocação Atual</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Alocação</CardTitle>
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-primary/60 rounded-full mr-2"></div>
+                  <span className="text-sm text-muted-foreground">Atual</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-primary rounded-full mr-2"></div>
+                  <span className="text-sm text-muted-foreground">Ideal</span>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="h-80">
-            <AllocationChart data={portfolio.allocationData} />
+            <AllocationChart 
+              data={portfolio.allocationData} 
+              comparisonData={calculateCurrentAllocation}
+              showComparison={true}
+            />
           </CardContent>
         </Card>
 
