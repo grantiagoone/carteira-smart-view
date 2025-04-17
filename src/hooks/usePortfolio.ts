@@ -7,5 +7,6 @@ export { type Asset } from "@/services/brapiService";
 export type { Portfolio, AllocationItem } from "./portfolio/types";
 
 export const usePortfolio = (portfolioId: string | undefined) => {
-  return usePortfolioData(portfolioId);
+  const portfolioData = usePortfolioData(portfolioId);
+  return portfolioData;
 };

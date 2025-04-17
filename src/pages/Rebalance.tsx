@@ -3,31 +3,21 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ChevronRight, ChevronDown, Wallet, Plus } from "lucide-react";
+import { ChevronRight, ChevronDown, Wallet, Plus } from "lucide-react";
 import AllocationChart from "@/components/charts/AllocationChart";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
-
-interface Portfolio {
-  id: number;
-  name: string;
-  value: number;
-  allocationData: {
-    name: string;
-    value: number;
-    color: string;
-  }[];
-}
+import { toast } from "sonner";
+import { usePortfolio } from "@/hooks/usePortfolio";
+import { Portfolio, AllocationItem } from "@/hooks/portfolio/types";
 
 interface RebalanceAction {
   assetClass: string;
@@ -48,6 +38,9 @@ const Rebalance = () => {
   const [rebalanceActions, setRebalanceActions] = useState<RebalanceAction[]>([]);
   const [currentAllocation, setCurrentAllocation] = useState<{name: string; value: number; color: string; target: number}[]>([]);
   const [targetAllocation, setTargetAllocation] = useState<{name: string; value: number; color: string;}[]>([]);
+  
+  // Use the usePortfolio hook to get portfolio details when selectedPortfolioId changes
+  const { portfolio: selectedPortfolio } = usePortfolio(selectedPortfolioId || undefined);
 
   // Load portfolios
   useEffect(() => {
@@ -66,7 +59,6 @@ const Rebalance = () => {
           // Select first portfolio if exists
           if (userPortfolios && userPortfolios.length > 0) {
             setSelectedPortfolioId(userPortfolios[0].id.toString());
-            calculateRebalancing(userPortfolios[0]);
           }
         } else {
           setPortfolios([]);
@@ -82,42 +74,63 @@ const Rebalance = () => {
     loadUserPortfolios();
   }, []);
 
-  const calculateRebalancing = (portfolio: Portfolio) => {
-    if (!portfolio || !portfolio.allocationData) return;
-    
-    // Define target allocation (could be from portfolio settings or predefined)
-    const portfolioValue = portfolio.value || 100000; // Default for calculation
+  // Update the rebalancing calculation when the portfolio changes
+  useEffect(() => {
+    if (selectedPortfolio) {
+      calculateRebalancing(selectedPortfolio);
+    }
+  }, [selectedPortfolio]);
 
-    // For this example, let's assume some targets based on names
-    const targetMap: Record<string, number> = {
-      'Ações': 35,
-      'FIIs': 25,
-      'Renda Fixa': 30,
-      'Internacional': 10
-    };
+  const calculateRebalancing = (portfolio: Portfolio) => {
+    if (!portfolio || !portfolio.allocationData) {
+      console.log("Portfolio or allocation data is missing");
+      return;
+    }
     
-    // Create current allocation with targets
-    const current = portfolio.allocationData.map(item => ({
+    const portfolioValue = portfolio.value || 100000; // Default for calculation
+    
+    // Use the portfolio's own allocation data for targets
+    const allocationData = portfolio.allocationData;
+    
+    // Create current allocation - in a real app, this would be calculated from assets
+    // For this example, we'll create some variation to show rebalancing needs
+    const current = allocationData.map(item => {
+      // Create some random variation for demo purposes
+      // In a real app, this would be calculated from actual holdings
+      const currentValue = Math.max(0, Math.min(100, 
+        item.value + (Math.random() > 0.5 ? 15 : -15)
+      ));
+      
+      return {
+        name: item.name,
+        value: currentValue,
+        color: item.color,
+        target: item.value // The original allocation is our target
+      };
+    });
+    
+    // Normalize current values to ensure they sum to 100%
+    const totalCurrent = current.reduce((sum, item) => sum + item.value, 0);
+    const normalizedCurrent = current.map(item => ({
       ...item,
-      target: targetMap[item.name] || item.value // Use existing value as target if no mapping
+      value: Math.round((item.value / totalCurrent) * 100)
     }));
     
-    setCurrentAllocation(current);
+    setCurrentAllocation(normalizedCurrent);
     
-    // Create target allocation for chart
-    const target = current.map(item => ({
+    // Create target allocation for chart using the portfolio's original allocation
+    const target = allocationData.map(item => ({
       name: item.name,
-      value: item.target,
+      value: item.value,
       color: item.color
     }));
     
     setTargetAllocation(target);
     
     // Calculate rebalance actions
-    const actions = current.map(item => {
+    const actions = normalizedCurrent.map(item => {
       const diff = item.target - item.value;
       const action = diff > 0 ? 'Comprar' : diff < 0 ? 'Vender' : 'Manter';
-      const absValue = Math.abs(diff);
       
       return {
         assetClass: item.name,
@@ -125,7 +138,7 @@ const Rebalance = () => {
         targetPercentage: item.target,
         diffPercentage: diff,
         action,
-        amount: Math.round(Math.abs(diff) * portfolioValue / 100), // Calculate actual amount
+        amount: Math.round(Math.abs(diff) * portfolioValue / 100),
         color: diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : 'text-gray-500'
       };
     });
@@ -135,10 +148,6 @@ const Rebalance = () => {
 
   const handlePortfolioChange = (value: string) => {
     setSelectedPortfolioId(value);
-    const selected = portfolios.find(p => p.id.toString() === value);
-    if (selected) {
-      calculateRebalancing(selected);
-    }
   };
 
   if (loading) {
@@ -181,8 +190,6 @@ const Rebalance = () => {
       </DashboardLayout>
     );
   }
-
-  const selectedPortfolio = portfolios.find(p => p.id.toString() === selectedPortfolioId);
 
   return (
     <DashboardLayout>
