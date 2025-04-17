@@ -66,7 +66,7 @@ export const AssetSearch = ({ onAddAsset, selectedAssets }: AssetSearchProps) =>
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Input
-            placeholder="Buscar por ticker ou nome..."
+            placeholder="Buscar por ticker ou nome do ativo..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyPress}

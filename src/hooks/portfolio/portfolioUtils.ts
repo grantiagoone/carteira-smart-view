@@ -1,3 +1,4 @@
+
 import { Asset } from "@/services/brapiService";
 import { AllocationItem, AssetRatings, AssetQuantities } from "./types";
 
@@ -94,19 +95,31 @@ export const deletePortfolioFromStorage = (portfolioId: string | undefined, user
 
 /**
  * Saves portfolios to localStorage with user-specific key
+ * Always use userId parameter to ensure data is stored in user-specific key
  */
 export const savePortfoliosToStorage = (portfolios: any[], userId?: string) => {
-  // Use user-specific storage key if userId is provided
-  const storageKey = userId ? `portfolios_${userId}` : 'portfolios';
+  if (!userId) {
+    console.error("Tentativa de salvar carteiras sem um ID de usuário");
+    return;
+  }
+  
+  // Always use user-specific storage key
+  const storageKey = `portfolios_${userId}`;
   localStorage.setItem(storageKey, JSON.stringify(portfolios));
 };
 
 /**
  * Gets all portfolios from localStorage with user-specific key
+ * Always use userId parameter to ensure data is retrieved from user-specific key
  */
 export const getAllPortfoliosFromStorage = (userId?: string) => {
-  // Use user-specific storage key if userId is provided
-  const storageKey = userId ? `portfolios_${userId}` : 'portfolios';
+  if (!userId) {
+    console.error("Tentativa de recuperar carteiras sem um ID de usuário");
+    return [];
+  }
+  
+  // Always use user-specific storage key
+  const storageKey = `portfolios_${userId}`;
   const savedPortfolios = localStorage.getItem(storageKey);
   
   if (!savedPortfolios) return [];

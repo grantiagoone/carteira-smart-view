@@ -26,6 +26,11 @@ export const useAuth = () => {
         
         // Clear any cached portfolios when logging out
         if (event === 'SIGNED_OUT') {
+          // Remove any user-specific data from localStorage
+          if (session?.user?.id) {
+            localStorage.removeItem(`portfolios_${session.user.id}`);
+          }
+          
           // Only redirect if not already on login/register page
           if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
             navigate('/login');
@@ -59,6 +64,9 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
+      // Get the current user ID before logout to clear their data
+      const userId = user?.id;
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error logging out:', error);
@@ -70,6 +78,11 @@ export const useAuth = () => {
       setIsAuthenticated(false);
       setUser(null);
       setSession(null);
+      
+      // Clear user-specific localStorage data
+      if (userId) {
+        localStorage.removeItem(`portfolios_${userId}`);
+      }
       
       toast.success('Logout realizado com sucesso');
       navigate('/login');

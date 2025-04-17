@@ -47,13 +47,19 @@ const PortfolioAssets = ({
         </Dialog>
       </CardHeader>
       <CardContent>
-        <AssetList 
-          assets={selectedAssets} 
-          onRemoveAsset={onRemoveAsset} 
-          onUpdateQuantity={onUpdateQuantity}
-          onUpdateRating={onUpdateRating}
-          assetRatings={assetRatings}
-        />
+        {selectedAssets.length > 0 ? (
+          <AssetList 
+            assets={selectedAssets} 
+            onRemoveAsset={onRemoveAsset} 
+            onUpdateQuantity={onUpdateQuantity}
+            onUpdateRating={onUpdateRating}
+            assetRatings={assetRatings}
+          />
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhum ativo adicionado. Clique em "Buscar e Adicionar Ativos" para começar.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

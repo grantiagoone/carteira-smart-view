@@ -59,6 +59,7 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     const token = localStorage.getItem('BRAPI_TOKEN');
     
     // Formato correto da URL conforme a documentação da BRAPI
+    // A API já suporta busca por nome ou ticker no mesmo endpoint
     const url = `${BASE_URL}/quote/list?search=${encodeURIComponent(query)}${token ? `&token=${token}` : ''}`;
     
     console.log("Realizando busca de ativos com URL:", url);
