@@ -29,10 +29,12 @@ export const AssetSearch = ({ onAddAsset, selectedAssets }: AssetSearchProps) =>
 
     setIsSearching(true);
     setError(null);
+    setSearchResults([]);
     
     try {
-      // Usar o serviço BRAPI para buscar dados reais
+      console.log(`Iniciando busca por: "${searchQuery}"`);
       const results = await searchAssets(searchQuery);
+      console.log(`Busca concluída, resultados:`, results);
       
       setSearchResults(results);
       

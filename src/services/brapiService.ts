@@ -58,11 +58,26 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     const data: BrapiAssetResponse = await response.json();
     console.log("Resposta da API:", data);
     
-    // Lidando com a nova estrutura de resposta da API
-    // A API pode retornar os resultados em data.results ou data.stocks
-    const apiResults = data.results || data.stocks || [];
+    // Handle new API response structure - the API returns a 'stocks' property
+    // for stock searches and may use different fields for other asset types
+    let apiResults: BrapiAsset[] = [];
     
-    if (!apiResults.length) {
+    if (data.results && Array.isArray(data.results) && data.results.length > 0) {
+      apiResults = data.results;
+    } else if (data.stocks && Array.isArray(data.stocks) && data.stocks.length > 0) {
+      // Convert the new API format to match our expected format
+      apiResults = data.stocks.map(stock => ({
+        symbol: stock.stock || "",
+        shortName: stock.name || "",
+        longName: stock.name || "",
+        currency: "BRL",
+        regularMarketPrice: stock.close || 0,
+        regularMarketChangePercent: stock.change || 0,
+        regularMarketChange: 0
+      }));
+    }
+    
+    if (!apiResults || apiResults.length === 0) {
       console.log("Nenhum ativo encontrado na resposta da API");
       return [];
     }
@@ -80,7 +95,7 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     return assets;
   } catch (error) {
     console.error("Erro ao buscar ativos:", error);
-    return [];
+    throw error; // Re-throw to allow for proper error handling in components
   }
 }
 
