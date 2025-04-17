@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
+import { getAllPortfoliosFromStorage, loadPortfolioFromStorage } from "@/hooks/portfolio/portfolioUtils";
 
 const formSchema = z.object({
   portfolioId: z.string({
@@ -29,6 +30,29 @@ const formSchema = z.object({
 interface Portfolio {
   id: number;
   name: string;
+  allocationData?: AllocationItem[];
+  assets?: any[];
+}
+
+interface AllocationItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface AssetSuggestion {
+  asset: string;
+  ticker?: string;  
+  class: string;
+  percentage: number;
+  amount: number;
+  currentValue?: number;
+  targetValue?: number;
+  quantity?: number;
+  price?: number;
+  currentPercentage?: number;
+  targetPercentage?: number;
+  classColor?: string;
 }
 
 const NewContribution = () => {
@@ -37,6 +61,8 @@ const NewContribution = () => {
   const [userPortfolios, setUserPortfolios] = useState<Portfolio[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPortfolioName, setSelectedPortfolioName] = useState("");
+  const [suggestedAllocation, setSuggestedAllocation] = useState<AssetSuggestion[]>([]);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<any>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -55,7 +81,12 @@ const NewContribution = () => {
 
         if (userId) {
           const portfolios = getAllPortfoliosFromStorage(userId);
-          setUserPortfolios(portfolios.map(p => ({ id: p.id, name: p.name })));
+          setUserPortfolios(portfolios.map(p => ({ 
+            id: p.id, 
+            name: p.name, 
+            allocationData: p.allocationData,
+            assets: p.assets
+          })));
         }
       } catch (error) {
         console.error("Error loading portfolios:", error);
@@ -68,17 +99,167 @@ const NewContribution = () => {
     loadUserPortfolios();
   }, []);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const selectedPortfolio = userPortfolios.find(p => p.id.toString() === values.portfolioId);
-    setSelectedPortfolioName(selectedPortfolio?.name || "");
+  const calculateSuggestions = (portfolioId: string, amount: number) => {
+    // Find selected portfolio
+    const portfolio = userPortfolios.find(p => p.id.toString() === portfolioId);
+    if (!portfolio) return [];
     
-    const formattedAmount = parseFloat(values.amount.replace(",", ".")).toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    setSelectedPortfolio(portfolio);
+
+    // Calculate total current portfolio value
+    const portfolioAssets = portfolio.assets || [];
+    const totalPortfolioValue = portfolioAssets.reduce((sum, asset) => {
+      return sum + (asset.price * (asset.quantity || 0));
+    }, 0);
+    
+    // Group assets by allocation class
+    const assetsByClass: Record<string, any[]> = {};
+    const currentValueByClass: Record<string, number> = {};
+    const allocatedPct: Record<string, number> = {};
+    
+    // Map allocation names to asset types
+    const classToTypeMap: Record<string, string[]> = {
+      "Ações": ["stock"],
+      "FIIs": ["reit"],
+      "Renda Fixa": ["fixed_income"],
+      "Internacional": ["international"]
+    };
+    
+    // Get current allocation percentages by class
+    portfolioAssets.forEach(asset => {
+      const assetClass = Object.entries(classToTypeMap).find(([_, types]) => 
+        types.includes(asset.type)
+      )?.[0] || "Outros";
+      
+      if (!assetsByClass[assetClass]) {
+        assetsByClass[assetClass] = [];
+      }
+      
+      assetsByClass[assetClass].push(asset);
+      
+      const assetValue = asset.price * (asset.quantity || 0);
+      currentValueByClass[assetClass] = (currentValueByClass[assetClass] || 0) + assetValue;
     });
     
-    console.log(values);
+    // Calculate current allocation percentages
+    Object.keys(currentValueByClass).forEach(className => {
+      allocatedPct[className] = totalPortfolioValue > 0 
+        ? (currentValueByClass[className] / totalPortfolioValue) * 100 
+        : 0;
+    });
     
+    // Get target allocation from portfolio
+    const targetAllocation = portfolio.allocationData || [];
+    const targetByClass: Record<string, number> = {};
+    const classColors: Record<string, string> = {};
+    
+    targetAllocation.forEach(item => {
+      targetByClass[item.name] = item.value;
+      classColors[item.name] = item.color;
+    });
+    
+    // Calculate suggestions based on difference between current and target
+    const suggestions: AssetSuggestion[] = [];
+    const totalAmount = amount;
+    
+    // First, calculate how much to allocate to each class based on the difference
+    const allocationDiffs: Record<string, number> = {};
+    let totalPositiveDiff = 0;
+    
+    // Calculate differences between target and current allocations
+    Object.keys(targetByClass).forEach(className => {
+      const targetPct = targetByClass[className] || 0;
+      const currentPct = allocatedPct[className] || 0;
+      const diff = targetPct - currentPct;
+      
+      allocationDiffs[className] = diff;
+      if (diff > 0) totalPositiveDiff += diff;
+    });
+    
+    // Allocate the contribution amount based on the positive differences
+    const allocationAmounts: Record<string, number> = {};
+    
+    if (totalPositiveDiff > 0) {
+      Object.keys(allocationDiffs).forEach(className => {
+        const diff = allocationDiffs[className];
+        if (diff > 0) {
+          allocationAmounts[className] = (diff / totalPositiveDiff) * totalAmount;
+        } else {
+          allocationAmounts[className] = 0;
+        }
+      });
+    } else {
+      // If no positive differences (perfect allocation or no data), 
+      // allocate according to target percentages
+      Object.keys(targetByClass).forEach(className => {
+        allocationAmounts[className] = (targetByClass[className] / 100) * totalAmount;
+      });
+    }
+    
+    // Now allocate within each class based on asset ratings or equal distribution
+    Object.keys(allocationAmounts).forEach(className => {
+      const amountForClass = allocationAmounts[className];
+      if (amountForClass <= 0) return;
+      
+      const assetsInClass = assetsByClass[className] || [];
+      
+      if (assetsInClass.length > 0) {
+        // Use asset ratings if available, otherwise distribute equally
+        const assetRatings = portfolio.assetRatings || {};
+        const totalRating = assetsInClass.reduce((sum, asset) => 
+          sum + (assetRatings[asset.id] || 5), 0);
+        
+        assetsInClass.forEach(asset => {
+          const rating = assetRatings[asset.id] || 5;
+          const assetWeight = totalRating > 0 ? rating / totalRating : 1 / assetsInClass.length;
+          const amountForAsset = amountForClass * assetWeight;
+          const currentAssetValue = asset.price * (asset.quantity || 0);
+          const currentPercentage = totalPortfolioValue > 0 
+            ? (currentAssetValue / totalPortfolioValue) * 100 
+            : 0;
+          
+          // Calculate quantity to buy
+          const quantityToBuy = asset.price > 0 ? Math.floor(amountForAsset / asset.price) : 0;
+          
+          suggestions.push({
+            asset: asset.name,
+            ticker: asset.ticker,
+            class: className,
+            percentage: (amountForAsset / totalAmount) * 100,
+            amount: amountForAsset,
+            currentValue: currentAssetValue,
+            targetValue: currentAssetValue + amountForAsset,
+            quantity: quantityToBuy,
+            price: asset.price,
+            currentPercentage,
+            targetPercentage: currentPercentage + ((amountForAsset / (totalPortfolioValue + totalAmount)) * 100),
+            classColor: classColors[className]
+          });
+        });
+      } else {
+        // If no assets in this class, add a placeholder
+        suggestions.push({
+          asset: `Novo ativo de ${className}`,
+          class: className,
+          percentage: (amountForClass / totalAmount) * 100,
+          amount: amountForClass,
+          classColor: classColors[className]
+        });
+      }
+    });
+    
+    // Sort suggestions by amount (descending)
+    return suggestions.sort((a, b) => b.amount - a.amount);
+  };
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    const portfolio = userPortfolios.find(p => p.id.toString() === values.portfolioId);
+    setSelectedPortfolioName(portfolio?.name || "");
+    
+    const contributionAmount = parseFloat(values.amount.replace(",", "."));
+    const calculatedSuggestions = calculateSuggestions(values.portfolioId, contributionAmount);
+    
+    setSuggestedAllocation(calculatedSuggestions);
     setShowSuggestion(true);
   }
 
@@ -107,12 +288,13 @@ const NewContribution = () => {
         }),
         status: "Concluído",
         allocations: suggestedAllocation.map(item => ({
-          asset: item.asset,
+          asset: item.ticker || item.asset,
           class: item.class,
           value: item.amount.toLocaleString('pt-BR', {
             style: 'currency',
             currency: 'BRL'
-          })
+          }),
+          quantity: item.quantity || 0
         }))
       };
       
@@ -127,6 +309,30 @@ const NewContribution = () => {
       contributions.push(newContribution);
       localStorage.setItem(storageKey, JSON.stringify(contributions));
       
+      // Update portfolio with new quantities
+      if (selectedPortfolio && selectedPortfolio.assets) {
+        const updatedPortfolio = {...selectedPortfolio};
+        
+        // Update asset quantities
+        suggestedAllocation.forEach(suggestion => {
+          if (suggestion.ticker && suggestion.quantity) {
+            const assetIndex = updatedPortfolio.assets.findIndex(a => a.ticker === suggestion.ticker);
+            if (assetIndex !== -1) {
+              updatedPortfolio.assets[assetIndex].quantity += suggestion.quantity;
+            }
+          }
+        });
+        
+        // Save portfolio changes
+        const portfolios = getAllPortfoliosFromStorage(userId);
+        const portfolioIndex = portfolios.findIndex(p => p.id.toString() === updatedPortfolio.id.toString());
+        
+        if (portfolioIndex !== -1) {
+          portfolios[portfolioIndex] = updatedPortfolio;
+          localStorage.setItem(`portfolios_${userId}`, JSON.stringify(portfolios));
+        }
+      }
+      
       toast.success("Aporte realizado com sucesso!", {
         description: "O aporte foi registrado e os ativos foram alocados conforme sugerido."
       });
@@ -137,17 +343,6 @@ const NewContribution = () => {
       toast.error("Erro ao salvar aporte");
     }
   };
-
-  const suggestedAllocation = [
-    { asset: "PETR4", class: "Ações", percentage: 15, amount: 300 },
-    { asset: "ITSA4", class: "Ações", percentage: 10, amount: 200 },
-    { asset: "MXRF11", class: "FIIs", percentage: 12.5, amount: 250 },
-    { asset: "KNRI11", class: "FIIs", percentage: 12.5, amount: 250 },
-    { asset: "Tesouro IPCA+", class: "Renda Fixa", percentage: 15, amount: 300 },
-    { asset: "CDB", class: "Renda Fixa", percentage: 15, amount: 300 },
-    { asset: "IVVB11", class: "Internacional", percentage: 10, amount: 200 },
-    { asset: "GOLD11", class: "Internacional", percentage: 10, amount: 200 },
-  ];
 
   return (
     <DashboardLayout>
@@ -254,11 +449,12 @@ const NewContribution = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card className="gradient-card max-w-4xl mx-auto">
+        <Card className="gradient-card max-w-5xl mx-auto">
           <CardHeader>
-            <CardTitle>Sugestão de Alocação</CardTitle>
+            <CardTitle>Sugestão de Alocação Inteligente</CardTitle>
             <CardDescription>
-              Com base na sua estratégia atual, sugerimos a seguinte alocação para o seu aporte de{' '}
+              Com base na sua estratégia atual e nas diferenças entre alocação atual e desejada, 
+              sugerimos a seguinte alocação para o seu aporte de{' '}
               {parseFloat(form.getValues().amount.replace(',', '.')).toLocaleString('pt-BR', {
                 style: 'currency',
                 currency: 'BRL'
@@ -267,15 +463,39 @@ const NewContribution = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {suggestedAllocation.map((item, index) => (
-                <div key={index} className="bg-card p-4 rounded-md border shadow-sm">
+                <div 
+                  key={index} 
+                  className="bg-card p-4 rounded-md border shadow-sm"
+                  style={{ borderLeft: `4px solid ${item.classColor || '#cbd5e0'}` }}
+                >
                   <div className="mb-1 text-sm font-medium text-muted-foreground">{item.class}</div>
-                  <div className="text-lg font-bold text-foreground">{item.asset}</div>
+                  <div className="text-lg font-bold text-foreground">{item.ticker || item.asset}</div>
                   <div className="mt-2 flex justify-between">
-                    <span className="text-sm text-muted-foreground">{item.percentage}%</span>
-                    <span className="font-medium text-primary">R$ {item.amount},00</span>
+                    <span className="text-sm text-muted-foreground">{item.percentage.toFixed(1)}%</span>
+                    <span className="font-medium text-primary">
+                      {item.amount.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
+                    </span>
                   </div>
+                  {item.quantity !== undefined && (
+                    <div className="mt-2 pt-2 border-t border-border flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Quantidade a comprar:</span>
+                      <span className="font-bold">{item.quantity} cotas</span>
+                    </div>
+                  )}
+                  {(item.currentPercentage !== undefined && item.targetPercentage !== undefined) && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <div className="flex justify-between">
+                        <span>Atual:</span>
+                        <span>{item.currentPercentage.toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Após aporte:</span>
+                        <span>{item.targetPercentage.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
