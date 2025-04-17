@@ -1,4 +1,3 @@
-
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,6 @@ const PortfolioDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { portfolio, loading, deletePortfolio, refreshPrices, isUpdating } = usePortfolio(id);
 
-  // Define loading UI
   const loadingUI = (
     <DashboardLayout>
       <div className="flex items-center justify-center h-[50vh]">
@@ -22,7 +20,6 @@ const PortfolioDetail = () => {
     </DashboardLayout>
   );
 
-  // Define not found UI
   const notFoundUI = (
     <DashboardLayout>
       <div className="flex flex-col items-center justify-center h-[50vh]">
@@ -39,7 +36,6 @@ const PortfolioDetail = () => {
     </DashboardLayout>
   );
 
-  // Calculate current allocation (always define this, even if portfolio doesn't exist yet)
   const calculateCurrentAllocation = useMemo(() => {
     if (!portfolio?.assets || portfolio.assets.length === 0) return [];
 
@@ -70,12 +66,15 @@ const PortfolioDetail = () => {
     });
   }, [portfolio]);
 
-  // Handle loading state
+  const rebalancingSuggestions = useMemo(() => {
+    if (!portfolio) return [];
+    return calculateRebalancingSuggestions(portfolio);
+  }, [portfolio]);
+
   if (loading) {
     return loadingUI;
   }
 
-  // Handle not found state
   if (!portfolio) {
     return notFoundUI;
   }
@@ -166,33 +165,54 @@ const PortfolioDetail = () => {
           </CardHeader>
           <CardContent>
             {portfolio.assets && portfolio.assets.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-muted/50 text-xs uppercase">
-                      <th className="px-4 py-2 text-left">Ticker</th>
-                      <th className="px-4 py-2 text-left">Nome</th>
-                      <th className="px-4 py-2 text-right">Preço Atual</th>
-                      <th className="px-4 py-2 text-right">Qtd.</th>
-                      <th className="px-4 py-2 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {portfolio.assets.map((asset) => (
-                      <tr key={asset.id} className="hover:bg-muted/20">
-                        <td className="px-4 py-3 text-left font-medium">{asset.ticker}</td>
-                        <td className="px-4 py-3 text-left">{asset.name}</td>
-                        <td className="px-4 py-3 text-right">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price)}
-                        </td>
-                        <td className="px-4 py-3 text-right">{asset.quantity}</td>
-                        <td className="px-4 py-3 text-right font-medium">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price * (asset.quantity || 0))}
-                        </td>
+              <div className="space-y-6">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-muted/50 text-xs uppercase">
+                        <th className="px-4 py-2 text-left">Ticker</th>
+                        <th className="px-4 py-2 text-left">Nome</th>
+                        <th className="px-4 py-2 text-right">Preço Atual</th>
+                        <th className="px-4 py-2 text-right">Qtd.</th>
+                        <th className="px-4 py-2 text-right">Total</th>
+                        <th className="px-4 py-2 text-right">Alocação</th>
+                        <th className="px-4 py-2 text-right">Alvo</th>
+                        <th className="px-4 py-2 text-right">Ajuste</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y">
+                      {portfolio.assets.map((asset) => {
+                        const suggestion = rebalancingSuggestions.find(s => s.asset.id === asset.id);
+                        return (
+                          <tr key={asset.id} className="hover:bg-muted/20">
+                            <td className="px-4 py-3 text-left font-medium">{asset.ticker}</td>
+                            <td className="px-4 py-3 text-left">{asset.name}</td>
+                            <td className="px-4 py-3 text-right">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price)}
+                            </td>
+                            <td className="px-4 py-3 text-right">{asset.quantity}</td>
+                            <td className="px-4 py-3 text-right font-medium">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price * asset.quantity)}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {suggestion ? `${suggestion.currentAllocation.toFixed(1)}%` : '-'}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {suggestion ? `${suggestion.targetAllocation.toFixed(1)}%` : '-'}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {suggestion && (
+                                <span className={suggestion.action === 'buy' ? 'text-green-600' : 'text-red-600'}>
+                                  {suggestion.action === 'buy' ? '+' : '-'}{suggestion.quantityToAdjust}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <p className="text-muted-foreground">Esta carteira não possui ativos cadastrados.</p>

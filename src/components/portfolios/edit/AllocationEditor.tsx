@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,13 +24,11 @@ const AllocationEditor = ({
   const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
-    // Calculate total allocation whenever items change
     const total = allocationItems.reduce((sum, item) => sum + item.value, 0);
     setTotalAllocation(total);
     setShowWarning(total !== 100);
   }, [allocationItems]);
 
-  // Memoize the allocation warning to prevent re-renders
   const allocationWarning = useMemo(() => {
     if (showWarning) {
       return (
@@ -46,7 +43,6 @@ const AllocationEditor = ({
     return null;
   }, [showWarning, totalAllocation]);
 
-  // Memoize the empty state UI to prevent re-renders
   const emptyStateUI = useMemo(() => (
     <div className="text-center py-6 border border-dashed rounded-md bg-muted/50">
       <p className="text-muted-foreground">Nenhuma alocação definida</p>
@@ -62,7 +58,6 @@ const AllocationEditor = ({
     </div>
   ), [addAllocationItem]);
 
-  // Memoize the allocation total summary to prevent re-renders
   const allocationTotal = useMemo(() => (
     <div className="mt-2 flex justify-between items-center py-2 px-4 bg-muted/50 rounded-md">
       <span className="font-medium">Total:</span>
@@ -92,16 +87,20 @@ const AllocationEditor = ({
             <div 
               key={index} 
               className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border rounded-md"
-              style={{ borderLeft: `4px solid ${item.color}` }}
             >
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <FormLabel className="text-xs">Nome</FormLabel>
-                  <Input 
-                    value={item.name} 
+                  <select
+                    value={item.name}
                     onChange={(e) => updateAllocationItem(index, "name", e.target.value)}
-                    className="mt-1"
-                  />
+                    className="w-full mt-1 bg-background border border-input rounded-md px-3 py-2"
+                  >
+                    <option value="stock">Ações</option>
+                    <option value="reit">FIIs</option>
+                    <option value="fixed_income">Renda Fixa</option>
+                    <option value="international">Internacional</option>
+                  </select>
                 </div>
                 <div>
                   <FormLabel className="text-xs">Alocação (%)</FormLabel>
@@ -109,29 +108,13 @@ const AllocationEditor = ({
                     type="number" 
                     value={item.value}
                     onChange={(e) => {
-                      const newValue = parseInt(e.target.value) || 0;
+                      const newValue = parseFloat(e.target.value) || 0;
                       updateAllocationItem(index, "value", newValue);
                     }}
                     min="0" 
                     max="100"
                     className="mt-1"
                   />
-                </div>
-                <div>
-                  <FormLabel className="text-xs">Cor</FormLabel>
-                  <div className="flex items-center mt-1 gap-2">
-                    <Input 
-                      type="color" 
-                      value={item.color} 
-                      onChange={(e) => updateAllocationItem(index, "color", e.target.value)}
-                      className="w-12 h-8 p-0 cursor-pointer"
-                    />
-                    <Input 
-                      type="text" 
-                      value={item.color} 
-                      onChange={(e) => updateAllocationItem(index, "color", e.target.value)}
-                    />
-                  </div>
                 </div>
               </div>
               <Button 
