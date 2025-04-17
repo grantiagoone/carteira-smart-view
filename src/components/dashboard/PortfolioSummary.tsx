@@ -26,7 +26,7 @@ const PortfolioSummary = () => {
 
   if (!hasPortfolios) {
     return (
-      <Card className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200">
+      <Card className="p-6 bg-white border border-slate-200 shadow-md rounded-lg">
         <CardContent className="flex flex-col items-center justify-center py-12 px-4 text-center">
           <div className="bg-primary/10 rounded-full p-4 mb-4">
             <Wallet className="h-12 w-12 text-primary" />
@@ -36,7 +36,7 @@ const PortfolioSummary = () => {
             Você ainda não adicionou nenhuma carteira de investimentos. 
             Adicione sua primeira carteira para começar a acompanhar seus investimentos.
           </p>
-          <Button asChild size="lg">
+          <Button asChild size="lg" className="investeja-button">
             <Link to="/portfolio/new" className="flex items-center">
               <Plus className="mr-2 h-4 w-4" />
               Adicionar Carteira
@@ -48,8 +48,8 @@ const PortfolioSummary = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-      <Card className="gradient-card">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <Card className="investeja-card">
         <CardContent className="p-6">
           <div className="flex items-center justify-between space-y-0 pb-2">
             <p className="text-sm font-medium text-muted-foreground">Valor Total</p>
@@ -70,7 +70,7 @@ const PortfolioSummary = () => {
         </CardContent>
       </Card>
 
-      <Card className="gradient-card">
+      <Card className="investeja-card">
         <CardContent className="p-6">
           <div className="flex items-center justify-between space-y-0 pb-2">
             <p className="text-sm font-medium text-muted-foreground">Rentabilidade</p>
@@ -90,7 +90,7 @@ const PortfolioSummary = () => {
         </CardContent>
       </Card>
 
-      <Card className="gradient-card">
+      <Card className="investeja-card">
         <CardContent className="p-6">
           <div className="flex items-center justify-between space-y-0 pb-2">
             <p className="text-sm font-medium text-muted-foreground">Total Aportado</p>
@@ -107,7 +107,7 @@ const PortfolioSummary = () => {
         </CardContent>
       </Card>
 
-      <Card className="gradient-card">
+      <Card className="investeja-card">
         <CardContent className="p-6">
           <div className="flex items-center justify-between space-y-0 pb-2">
             <p className="text-sm font-medium text-muted-foreground">Status Alocação</p>
