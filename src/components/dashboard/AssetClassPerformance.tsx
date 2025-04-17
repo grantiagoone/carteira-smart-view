@@ -151,10 +151,8 @@ const AssetClassPerformance = ({ portfolioId }: AssetClassPerformanceProps) => {
         <Bar 
           dataKey="performance" 
           radius={[4, 4, 0, 0]} 
-          fill="#10b981" 
           stroke="#10b981"
           fillOpacity={1}
-          // Use the color property from our processed data
           fill={(entry) => entry.color}
           name="Performance"
         />

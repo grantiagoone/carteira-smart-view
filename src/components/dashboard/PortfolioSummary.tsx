@@ -140,87 +140,95 @@ const PortfolioSummary = ({ selectedPortfolioId }: PortfolioSummaryProps) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <Card className="investeja-card">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between space-y-0 pb-2">
-            <p className="text-sm font-medium text-muted-foreground">Valor Total</p>
-            <div className="p-2 bg-primary/10 rounded-full">
-              <Wallet className="h-4 w-4 text-primary" />
+        <CardContent className="p-0">
+          <div className="flex flex-col h-full p-6">
+            <div className="flex items-center justify-between pb-2">
+              <p className="text-sm font-medium text-muted-foreground">Valor Total</p>
+              <div className="p-2 bg-primary/10 rounded-full">
+                <Wallet className="h-4 w-4 text-primary" />
+              </div>
             </div>
+            <div className="flex items-baseline space-x-2">
+              <h3 className="text-2xl font-bold">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
+              </h3>
+              {averageReturn > 0 && (
+                <span className="flex items-center text-xs text-green-600 font-semibold">
+                  <TrendingUp className="h-3 w-3 mr-0.5" />
+                  +{averageReturn.toFixed(1)}%
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {portfolioCount} {portfolioCount === 1 ? 'carteira ativa' : 'carteiras ativas'}
+            </p>
           </div>
-          <div className="flex items-baseline space-x-2">
-            <h3 className="text-2xl font-bold">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
-            </h3>
-            {averageReturn > 0 && (
-              <span className="flex items-center text-xs text-green-600 font-semibold">
-                <TrendingUp className="h-3 w-3 mr-0.5" />
-                +{averageReturn.toFixed(1)}%
+        </CardContent>
+      </Card>
+
+      <Card className="investeja-card">
+        <CardContent className="p-0">
+          <div className="flex flex-col h-full p-6">
+            <div className="flex items-center justify-between pb-2">
+              <p className="text-sm font-medium text-muted-foreground">Rentabilidade</p>
+              <div className="p-2 bg-green-100 rounded-full">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </div>
+            </div>
+            <div className="flex items-baseline space-x-2">
+              <h3 className="text-2xl font-bold">{averageReturn > 0 ? `+${averageReturn.toFixed(1)}%` : '0%'}</h3>
+              <span className="text-xs text-muted-foreground">
+                no ano
               </span>
-            )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {averageReturn > 0 ? `+${(averageReturn / 3).toFixed(1)}%` : '0%'} último mês
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {portfolioCount} {portfolioCount === 1 ? 'carteira ativa' : 'carteiras ativas'}
-          </p>
         </CardContent>
       </Card>
 
       <Card className="investeja-card">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between space-y-0 pb-2">
-            <p className="text-sm font-medium text-muted-foreground">Rentabilidade</p>
-            <div className="p-2 bg-green-100 rounded-full">
-              <TrendingUp className="h-4 w-4 text-green-600" />
+        <CardContent className="p-0">
+          <div className="flex flex-col h-full p-6">
+            <div className="flex items-center justify-between pb-2">
+              <p className="text-sm font-medium text-muted-foreground">Total Aportado</p>
+              <div className="p-2 bg-primary/10 rounded-full">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
             </div>
+            <div className="flex items-baseline space-x-2">
+              <h3 className="text-2xl font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue * 0.9)}</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {lastContribution 
+                ? `Último aporte: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lastContribution.amount)} (${lastContribution.date})`
+                : 'Nenhum aporte recente'
+              }
+            </p>
           </div>
-          <div className="flex items-baseline space-x-2">
-            <h3 className="text-2xl font-bold">{averageReturn > 0 ? `+${averageReturn.toFixed(1)}%` : '0%'}</h3>
-            <span className="text-xs text-muted-foreground">
-              no ano
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {averageReturn > 0 ? `+${(averageReturn / 3).toFixed(1)}%` : '0%'} último mês
-          </p>
         </CardContent>
       </Card>
 
       <Card className="investeja-card">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between space-y-0 pb-2">
-            <p className="text-sm font-medium text-muted-foreground">Total Aportado</p>
-            <div className="p-2 bg-primary/10 rounded-full">
-              <DollarSign className="h-4 w-4 text-primary" />
+        <CardContent className="p-0">
+          <div className="flex flex-col h-full p-6">
+            <div className="flex items-center justify-between pb-2">
+              <p className="text-sm font-medium text-muted-foreground">Status Alocação</p>
+              <div className="p-2 bg-amber-100 rounded-full">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+              </div>
             </div>
-          </div>
-          <div className="flex items-baseline space-x-2">
-            <h3 className="text-2xl font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue * 0.9)}</h3>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {lastContribution 
-              ? `Último aporte: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lastContribution.amount)} (${lastContribution.date})`
-              : 'Nenhum aporte recente'
-            }
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card className="investeja-card">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between space-y-0 pb-2">
-            <p className="text-sm font-medium text-muted-foreground">Status Alocação</p>
-            <div className="p-2 bg-amber-100 rounded-full">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <div className="flex items-baseline space-x-2">
+              <h3 className="text-2xl font-bold">{allocationDifference}%</h3>
+              <span className="text-xs text-muted-foreground">
+                de diferença
+              </span>
             </div>
+            <p className="text-xs text-amber-600 mt-1">
+              Rebalanceamento recomendado
+            </p>
           </div>
-          <div className="flex items-baseline space-x-2">
-            <h3 className="text-2xl font-bold">{allocationDifference}%</h3>
-            <span className="text-xs text-muted-foreground">
-              de diferença
-            </span>
-          </div>
-          <p className="text-xs text-amber-600 mt-1">
-            Rebalanceamento recomendado
-          </p>
         </CardContent>
       </Card>
     </div>

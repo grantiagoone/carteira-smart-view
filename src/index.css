@@ -62,7 +62,7 @@
   }
 
   .investeja-card {
-    @apply bg-white shadow-md rounded-md p-6;
+    @apply bg-white shadow-md rounded-md;
   }
 
   .investeja-section {
