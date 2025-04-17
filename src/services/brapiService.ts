@@ -1,4 +1,3 @@
-
 export interface BrapiAssetResponse {
   results: BrapiAsset[];
   requestedAt: string;
@@ -25,26 +24,23 @@ export interface Asset {
   quantity?: number;
 }
 
-// Função para determinar o tipo de ativo com base no ticker
 const determineAssetType = (ticker: string): "stock" | "reit" | "fixed_income" | "international" => {
-  // Os FIIs no Brasil geralmente terminam com "11"
   if (ticker.endsWith("11")) {
     return "reit";
   }
   
-  // Ativos internacionais geralmente têm um prefixo como BDR
   if (ticker.includes("BDR") || ticker.endsWith("34")) {
     return "international";
   }
 
-  // Ações normais (padrão)
   return "stock";
 };
 
 export async function searchAssets(query: string): Promise<Asset[]> {
   try {
-    // Endpoint de busca da BRAPI
-    const url = `https://brapi.dev/api/quote/list?search=${encodeURIComponent(query)}`;
+    const token = localStorage.getItem('BRAPI_TOKEN');
+    const baseUrl = `https://brapi.dev/api/quote/list?search=${encodeURIComponent(query)}`;
+    const url = token ? `${baseUrl}&token=${token}` : baseUrl;
     
     const response = await fetch(url);
     
@@ -54,9 +50,8 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     
     const data: BrapiAssetResponse = await response.json();
     
-    // Converter os dados da BRAPI para nosso formato de Asset
     const assets: Asset[] = data.results.map(item => ({
-      id: item.symbol, // Usando o símbolo como ID único
+      id: item.symbol,
       ticker: item.symbol,
       name: item.longName || item.shortName,
       price: item.regularMarketPrice,
@@ -73,7 +68,9 @@ export async function searchAssets(query: string): Promise<Asset[]> {
 
 export async function getAssetPrice(ticker: string): Promise<number | null> {
   try {
-    const url = `https://brapi.dev/api/quote/${encodeURIComponent(ticker)}`;
+    const token = localStorage.getItem('BRAPI_TOKEN');
+    const baseUrl = `https://brapi.dev/api/quote/${encodeURIComponent(ticker)}`;
+    const url = token ? `${baseUrl}?token=${token}` : baseUrl;
     
     const response = await fetch(url);
     
@@ -92,4 +89,8 @@ export async function getAssetPrice(ticker: string): Promise<number | null> {
     console.error(`Erro ao buscar preço para ${ticker}:`, error);
     return null;
   }
+}
+
+export function setBrapiToken(token: string) {
+  localStorage.setItem('BRAPI_TOKEN', token);
 }
