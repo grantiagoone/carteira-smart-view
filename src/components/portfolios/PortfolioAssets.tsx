@@ -1,9 +1,9 @@
 
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { AssetSearch, Asset } from "@/components/assets/AssetSearch";
 import { AssetList } from "@/components/assets/AssetList";
+import { AssetSearchDialog } from "./assets/AssetSearchDialog";
+import { EmptyAssetsState } from "./assets/EmptyAssetsState";
+import { Asset } from "@/services/brapiService";
 
 interface PortfolioAssetsProps {
   selectedAssets: Asset[];
@@ -26,25 +26,10 @@ const PortfolioAssets = ({
     <Card className="mt-6">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Ativos</CardTitle>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button type="button" variant="outline">
-              Buscar e Adicionar Ativos
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Adicionar Ativos</DialogTitle>
-              <DialogDescription>
-                Busque por ticker ou nome do ativo para adicionar à sua carteira
-              </DialogDescription>
-            </DialogHeader>
-            <AssetSearch 
-              onAddAsset={onAddAsset} 
-              selectedAssets={selectedAssets} 
-            />
-          </DialogContent>
-        </Dialog>
+        <AssetSearchDialog 
+          onAddAsset={onAddAsset} 
+          selectedAssets={selectedAssets} 
+        />
       </CardHeader>
       <CardContent>
         {selectedAssets.length > 0 ? (
@@ -56,9 +41,7 @@ const PortfolioAssets = ({
             assetRatings={assetRatings}
           />
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            Nenhum ativo adicionado. Clique em "Buscar e Adicionar Ativos" para começar.
-          </div>
+          <EmptyAssetsState />
         )}
       </CardContent>
     </Card>
