@@ -1,4 +1,3 @@
-
 import { Asset } from "@/services/brapiService";
 import { AllocationItem, AssetRatings, AssetQuantities } from "./types";
 
@@ -59,30 +58,58 @@ export const distributeAllocationByType = (
 };
 
 /**
- * Loads a portfolio by ID from localStorage
+ * Loads a portfolio by ID from localStorage with user-specific key
  */
-export const loadPortfolioFromStorage = (portfolioId: string | undefined) => {
+export const loadPortfolioFromStorage = (portfolioId: string | undefined, userId?: string) => {
   if (!portfolioId) return null;
   
-  const savedPortfolios = localStorage.getItem('portfolios');
+  // Use user-specific storage key if userId is provided
+  const storageKey = userId ? `portfolios_${userId}` : 'portfolios';
+  const savedPortfolios = localStorage.getItem(storageKey);
+  
   if (!savedPortfolios) return null;
   
   const portfolios = JSON.parse(savedPortfolios);
-  return portfolios.find((p: any) => p.id === Number(portfolioId)) || null;
+  return portfolios.find((p: any) => p.id.toString() === portfolioId.toString()) || null;
 };
 
 /**
- * Deletes a portfolio from localStorage
+ * Deletes a portfolio from localStorage with user-specific key
  */
-export const deletePortfolioFromStorage = (portfolioId: string | undefined) => {
+export const deletePortfolioFromStorage = (portfolioId: string | undefined, userId?: string) => {
   if (!portfolioId) return false;
   
-  const savedPortfolios = localStorage.getItem('portfolios');
+  // Use user-specific storage key if userId is provided
+  const storageKey = userId ? `portfolios_${userId}` : 'portfolios';
+  const savedPortfolios = localStorage.getItem(storageKey);
+  
   if (!savedPortfolios) return false;
   
   const portfolios = JSON.parse(savedPortfolios);
-  const updatedPortfolios = portfolios.filter((p: any) => p.id !== Number(portfolioId));
-  localStorage.setItem('portfolios', JSON.stringify(updatedPortfolios));
+  const updatedPortfolios = portfolios.filter((p: any) => p.id.toString() !== portfolioId.toString());
+  localStorage.setItem(storageKey, JSON.stringify(updatedPortfolios));
   
   return true;
+};
+
+/**
+ * Saves portfolios to localStorage with user-specific key
+ */
+export const savePortfoliosToStorage = (portfolios: any[], userId?: string) => {
+  // Use user-specific storage key if userId is provided
+  const storageKey = userId ? `portfolios_${userId}` : 'portfolios';
+  localStorage.setItem(storageKey, JSON.stringify(portfolios));
+};
+
+/**
+ * Gets all portfolios from localStorage with user-specific key
+ */
+export const getAllPortfoliosFromStorage = (userId?: string) => {
+  // Use user-specific storage key if userId is provided
+  const storageKey = userId ? `portfolios_${userId}` : 'portfolios';
+  const savedPortfolios = localStorage.getItem(storageKey);
+  
+  if (!savedPortfolios) return [];
+  
+  return JSON.parse(savedPortfolios);
 };

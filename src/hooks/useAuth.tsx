@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -15,13 +16,28 @@ export const useAuth = () => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.email);
+        
+        // Update session and user state
         setSession(session);
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
         setIsLoading(false);
         
-        if (!session && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-          navigate('/login');
+        // Clear any cached portfolios when logging out
+        if (event === 'SIGNED_OUT') {
+          // Only redirect if not already on login/register page
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+            navigate('/login');
+          }
+        }
+        
+        // If signed in and on auth pages, redirect to home
+        if (event === 'SIGNED_IN') {
+          if (window.location.pathname === '/login' || window.location.pathname === '/register') {
+            toast.success("Login realizado com sucesso!");
+            navigate('/');
+          }
         }
       }
     );
@@ -42,16 +58,27 @@ export const useAuth = () => {
   }, [navigate]);
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error logging out:', error);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error logging out:', error);
+        toast.error('Erro ao fazer logout');
+        return false;
+      }
+      
+      // Clear auth state
+      setIsAuthenticated(false);
+      setUser(null);
+      setSession(null);
+      
+      toast.success('Logout realizado com sucesso');
+      navigate('/login');
+      return true;
+    } catch (err) {
+      console.error('Error during logout:', err);
+      toast.error('Erro ao fazer logout');
       return false;
     }
-    setIsAuthenticated(false);
-    setUser(null);
-    setSession(null);
-    navigate('/login');
-    return true;
   };
 
   return { isAuthenticated, user, session, logout, isLoading };

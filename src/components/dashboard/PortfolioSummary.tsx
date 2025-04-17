@@ -1,28 +1,71 @@
-
 import { TrendingUp, TrendingDown, Wallet, DollarSign, Target, AlertTriangle, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
 
 const PortfolioSummary = () => {
   const [hasPortfolios, setHasPortfolios] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [totalValue, setTotalValue] = useState(0);
+  const [portfolioCount, setPortfolioCount] = useState(0);
+  const [averageReturn, setAverageReturn] = useState(0);
   
   useEffect(() => {
-    // Check if there are portfolios in localStorage
-    const savedPortfolios = localStorage.getItem('portfolios');
-    if (savedPortfolios) {
+    const loadUserPortfolios = async () => {
+      setLoading(true);
+      
       try {
-        const portfolios = JSON.parse(savedPortfolios);
-        setHasPortfolios(portfolios && portfolios.length > 0);
+        // Get the current authenticated user
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        
+        // If we have a user, load their portfolios
+        if (userId) {
+          const userPortfolios = getAllPortfoliosFromStorage(userId);
+          setHasPortfolios(userPortfolios && userPortfolios.length > 0);
+          
+          if (userPortfolios && userPortfolios.length > 0) {
+            // Calculate total value and average return
+            const total = userPortfolios.reduce((sum, p) => sum + p.value, 0);
+            setTotalValue(total);
+            
+            // Count portfolios
+            setPortfolioCount(userPortfolios.length);
+            
+            // Calculate weighted average return
+            const weightedReturn = userPortfolios.reduce((sum, p) => {
+              return sum + (p.returnPercentage * p.value);
+            }, 0);
+            
+            setAverageReturn(total > 0 ? weightedReturn / total : 0);
+          }
+        } else {
+          // User not logged in, show empty state
+          setHasPortfolios(false);
+        }
       } catch (error) {
         console.error("Erro ao carregar carteiras:", error);
         setHasPortfolios(false);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      setHasPortfolios(false);
-    }
+    };
+    
+    loadUserPortfolios();
   }, []);
+
+  if (loading) {
+    return (
+      <Card className="p-6 bg-white border border-slate-200 shadow-md rounded-lg">
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!hasPortfolios) {
     return (
@@ -58,14 +101,16 @@ const PortfolioSummary = () => {
             </div>
           </div>
           <div className="flex items-baseline space-x-2">
-            <h3 className="text-2xl font-bold">R$ 156.789,00</h3>
+            <h3 className="text-2xl font-bold">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
+            </h3>
             <span className="flex items-center text-xs text-green-600 font-semibold">
               <TrendingUp className="h-3 w-3 mr-0.5" />
-              +5,2%
+              +{averageReturn.toFixed(1)}%
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            2 carteiras ativas
+            {portfolioCount} {portfolioCount === 1 ? 'carteira ativa' : 'carteiras ativas'}
           </p>
         </CardContent>
       </Card>

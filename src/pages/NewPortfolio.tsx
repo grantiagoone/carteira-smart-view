@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +15,8 @@ import { AssetList } from "@/components/assets/AssetList";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { getAllPortfoliosFromStorage, savePortfoliosToStorage } from "@/hooks/portfolio/portfolioUtils";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -61,16 +62,13 @@ const NewPortfolio = () => {
   }, [allocationItems]);
 
   const handleAddAsset = (asset: Asset) => {
-    // If asset already exists, remove it
     if (selectedAssets.some(a => a.ticker === asset.ticker)) {
       setSelectedAssets(selectedAssets.filter(a => a.ticker !== asset.ticker));
       
-      // Remove quantity data
       const newQuantities = { ...assetQuantities };
       delete newQuantities[asset.id];
       setAssetQuantities(newQuantities);
       
-      // Remove rating data
       const newRatings = { ...assetRatings };
       delete newRatings[asset.id];
       setAssetRatings(newRatings);
@@ -79,16 +77,13 @@ const NewPortfolio = () => {
       return;
     }
     
-    // Add the asset
     setSelectedAssets([...selectedAssets, asset]);
     
-    // Initialize with default rating of 5
     setAssetRatings(prev => ({
       ...prev,
       [asset.id]: 5
     }));
     
-    // Distribute asset quantities based on allocation
     distributeAssetQuantitiesByType(asset);
     
     toast(`${asset.ticker} adicionado à carteira`);
@@ -97,12 +92,10 @@ const NewPortfolio = () => {
   const handleRemoveAsset = (assetId: string) => {
     setSelectedAssets(selectedAssets.filter(asset => asset.id !== assetId));
     
-    // Remove quantity data
     const newQuantities = { ...assetQuantities };
     delete newQuantities[assetId];
     setAssetQuantities(newQuantities);
     
-    // Remove rating data
     const newRatings = { ...assetRatings };
     delete newRatings[assetId];
     setAssetRatings(newRatings);
@@ -121,7 +114,6 @@ const NewPortfolio = () => {
       [assetId]: rating
     }));
     
-    // After updating rating, redistribute based on new ratings
     redistributeAssetQuantities();
   };
   
@@ -129,16 +121,13 @@ const NewPortfolio = () => {
     const newItems = [...allocationItems];
     
     if (field === "value") {
-      // Ensure value is a number
       newItems[index][field] = Number(value);
     } else {
-      // For name and color, value will be a string
       newItems[index][field] = value as string;
     }
     
     setAllocationItems(newItems);
     
-    // After updating allocation, redistribute quantities
     redistributeAssetQuantities();
   };
 
@@ -150,14 +139,13 @@ const NewPortfolio = () => {
     const newItem: AllocationItem = {
       name: "Nova Classe",
       value: 0,
-      color: `#${Math.floor(Math.random()*16777215).toString(16)}`, // Random color
+      color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
     };
     
     setAllocationItems([...allocationItems, newItem]);
   };
   
   const distributeAssetQuantitiesByType = (newAsset: Asset) => {
-    // Find allocation item for the asset type
     const typeToAllocationMap: Record<string, string> = {
       "stock": "Ações",
       "reit": "FIIs",
@@ -170,17 +158,14 @@ const NewPortfolio = () => {
     const allocationItem = allocationItems.find(item => item.name === allocationType);
     
     if (allocationItem) {
-      // Find all assets of the same type
       const assetsOfSameType = [...selectedAssets, newAsset].filter(a => a.type === assetType);
       
       if (assetsOfSameType.length > 0) {
-        // Calculate total rating for weighted distribution
         const totalRating = assetsOfSameType.reduce(
           (sum, asset) => sum + (assetRatings[asset.id] || 5), 
           0
         );
         
-        // If all assets have the same rating (or no ratings), distribute evenly
         if (totalRating === 0 || assetsOfSameType.every(a => 
           (assetRatings[a.id] || 5) === (assetRatings[assetsOfSameType[0].id] || 5))
         ) {
@@ -189,7 +174,6 @@ const NewPortfolio = () => {
             handleUpdateQuantity(asset.id, quantityPerAsset);
           });
         } else {
-          // Distribute based on ratings
           assetsOfSameType.forEach(asset => {
             const rating = assetRatings[asset.id] || 5;
             const weight = rating / totalRating;
@@ -202,7 +186,6 @@ const NewPortfolio = () => {
   };
   
   const redistributeAssetQuantities = () => {
-    // Group assets by type
     const assetsByType: Record<string, Asset[]> = {};
     selectedAssets.forEach(asset => {
       if (!assetsByType[asset.type]) {
@@ -211,7 +194,6 @@ const NewPortfolio = () => {
       assetsByType[asset.type].push(asset);
     });
     
-    // Map asset types to allocation names
     const typeToAllocationMap: Record<string, string> = {
       "stock": "Ações",
       "reit": "FIIs",
@@ -219,23 +201,19 @@ const NewPortfolio = () => {
       "international": "Internacional"
     };
     
-    // For each asset type, distribute based on ratings
     Object.entries(assetsByType).forEach(([type, assets]) => {
       const allocationType = typeToAllocationMap[type] || type;
       const allocationItem = allocationItems.find(item => item.name === allocationType);
       
       if (allocationItem && assets.length > 0) {
-        // Calculate total rating for weighted distribution
         const totalRating = assets.reduce((sum, asset) => sum + (assetRatings[asset.id] || 5), 0);
         
-        // If all assets have the same rating (or no ratings), distribute evenly
         if (totalRating === 0 || assets.every(a => (assetRatings[a.id] || 5) === (assetRatings[assets[0].id] || 5))) {
           const quantityPerAsset = 100 / assets.length;
           assets.forEach(asset => {
             handleUpdateQuantity(asset.id, quantityPerAsset);
           });
         } else {
-          // Distribute based on ratings
           assets.forEach(asset => {
             const rating = assetRatings[asset.id] || 5;
             const weight = rating / totalRating;
@@ -260,19 +238,16 @@ const NewPortfolio = () => {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Validate that allocation adds up to 100%
     if (totalAllocation !== 100) {
       toast("A alocação total deve ser 100%");
       return;
     }
     
-    // Calculate total portfolio value
     const totalValue = Object.entries(assetQuantities).reduce((total, [assetId, quantity]) => {
       const asset = selectedAssets.find(a => a.id === assetId);
       return total + (asset ? asset.price * quantity : 0);
     }, 0);
 
-    // Process assets into a storable format
     const portfolioAssets = selectedAssets.map(asset => ({
       id: asset.id,
       ticker: asset.ticker,
@@ -282,38 +257,42 @@ const NewPortfolio = () => {
       quantity: assetQuantities[asset.id] || 0
     }));
     
-    // Carregar carteiras existentes ou inicializar com array vazio
-    const existingPortfolios = JSON.parse(localStorage.getItem('portfolios') || '[]');
-    
-    // Criar nova carteira com ID único e dados
-    const newPortfolio = {
-      id: Date.now(), // Usar timestamp como ID único
-      name: values.name,
-      description: values.description || "",
-      value: totalValue,
-      returnPercentage: 0,
-      returnValue: 0,
-      allocationData: allocationItems,
-      assets: portfolioAssets,
-      assetRatings: assetRatings
-    };
-    
-    // Adicionar nova carteira e salvar no localStorage
-    const updatedPortfolios = [...existingPortfolios, newPortfolio];
-    localStorage.setItem('portfolios', JSON.stringify(updatedPortfolios));
-    
-    console.log("Nova carteira criada:", newPortfolio);
-    
-    useToastFn({
-      title: "Carteira criada com sucesso!",
-      description: `A carteira ${values.name} foi criada.`,
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const userId = session?.user?.id;
+      
+      if (!userId) {
+        toast.error("Você precisa estar logado para criar uma carteira");
+        return;
+      }
+      
+      const existingPortfolios = getAllPortfoliosFromStorage(userId);
+      
+      const newPortfolio = {
+        id: Date.now(),
+        name: values.name,
+        description: values.description || "",
+        value: totalValue,
+        returnPercentage: 0,
+        returnValue: 0,
+        allocationData: allocationItems,
+        assets: portfolioAssets,
+        assetRatings: assetRatings
+      };
+      
+      const updatedPortfolios = [...existingPortfolios, newPortfolio];
+      savePortfoliosToStorage(updatedPortfolios, userId);
+      
+      console.log("Nova carteira criada:", newPortfolio);
+      
+      useToastFn({
+        title: "Carteira criada com sucesso!",
+        description: `A carteira ${values.name} foi criada.`,
+      });
 
-    // Navegar para a página de carteiras
-    navigate("/portfolios");
+      navigate("/portfolios");
+    });
   }
 
-  // Render allocation editor
   const renderAllocationEditor = () => {
     return (
       <div className="space-y-6">

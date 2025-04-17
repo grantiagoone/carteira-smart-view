@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
 
 // Interface for assets
 interface Asset {
@@ -41,62 +42,46 @@ interface Portfolio {
   assets?: Asset[];
 }
 
-// Dados iniciais de carteiras
-const initialPortfolios: Portfolio[] = [
-  {
-    id: 1,
-    name: "Carteira Principal",
-    value: 124680.50,
-    returnPercentage: 12.5,
-    returnValue: 13850.30,
-    allocationData: [
-      { name: 'Ações', value: 35, color: '#ea384c' },
-      { name: 'FIIs', value: 25, color: '#0D9488' },
-      { name: 'Renda Fixa', value: 30, color: '#F59E0B' },
-      { name: 'Internacional', value: 10, color: '#222' }
-    ]
-  },
-  {
-    id: 2,
-    name: "Aposentadoria",
-    value: 32108.50,
-    returnPercentage: 8.7,
-    returnValue: 2570.40,
-    allocationData: [
-      { name: 'Ações', value: 20, color: '#ea384c' },
-      { name: 'FIIs', value: 15, color: '#0D9488' },
-      { name: 'Renda Fixa', value: 60, color: '#F59E0B' },
-      { name: 'Internacional', value: 5, color: '#222' }
-    ]
-  }
-];
-
 const Portfolios = () => {
   // Estado para armazenar as carteiras
-  const [portfolios, setPortfolios] = useState<Portfolio[]>(initialPortfolios);
+  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<number | null>(null);
   const [viewType, setViewType] = useState<"single" | "all">("single");
+  const [loading, setLoading] = useState(true);
   
   // Efeito para carregar carteiras do localStorage ao montar o componente
   useEffect(() => {
-    const savedPortfolios = localStorage.getItem('portfolios');
-    if (savedPortfolios) {
+    const loadUserPortfolios = async () => {
+      setLoading(true);
+      
       try {
-        const parsedPortfolios = JSON.parse(savedPortfolios);
-        setPortfolios(parsedPortfolios);
+        // Get the current authenticated user
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
         
-        // Seleciona a primeira carteira por padrão se existir alguma
-        if (parsedPortfolios.length > 0) {
-          setSelectedPortfolioId(parsedPortfolios[0].id);
+        // If we have a user, load their portfolios
+        if (userId) {
+          const userPortfolios = getAllPortfoliosFromStorage(userId);
+          setPortfolios(userPortfolios);
+          
+          // Seleciona a primeira carteira por padrão se existir alguma
+          if (userPortfolios.length > 0) {
+            setSelectedPortfolioId(userPortfolios[0].id);
+          }
+        } else {
+          // User not logged in, show empty state
+          setPortfolios([]);
         }
       } catch (error) {
         console.error("Erro ao carregar carteiras:", error);
         toast("Erro ao carregar carteiras");
+        setPortfolios([]);
+      } finally {
+        setLoading(false);
       }
-    } else if (initialPortfolios.length > 0) {
-      // Usa as carteiras iniciais se não houver nada no localStorage
-      setSelectedPortfolioId(initialPortfolios[0].id);
-    }
+    };
+    
+    loadUserPortfolios();
   }, []);
 
   const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
@@ -140,6 +125,16 @@ const Portfolios = () => {
       items: data.items
     }));
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[50vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
