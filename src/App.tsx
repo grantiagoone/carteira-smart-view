@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,34 +17,39 @@ import NotFound from "./pages/NotFound";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import { useBrapiToken } from "./hooks/useBrapiToken";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/portfolios" element={<Portfolios />} />
-          <Route path="/portfolio/new" element={<NewPortfolio />} />
-          <Route path="/portfolio/:id" element={<PortfolioDetail />} />
-          <Route path="/portfolio/:id/edit" element={<PortfolioEdit />} />
-          <Route path="/strategies" element={<Strategies />} />
-          <Route path="/contributions" element={<Contributions />} />
-          <Route path="/contribution/new" element={<NewContribution />} />
-          <Route path="/rebalance" element={<Rebalance />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  useBrapiToken();
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/portfolios" element={<Portfolios />} />
+            <Route path="/portfolio/new" element={<NewPortfolio />} />
+            <Route path="/portfolio/:id" element={<PortfolioDetail />} />
+            <Route path="/portfolio/:id/edit" element={<PortfolioEdit />} />
+            <Route path="/strategies" element={<Strategies />} />
+            <Route path="/contributions" element={<Contributions />} />
+            <Route path="/contribution/new" element={<NewContribution />} />
+            <Route path="/rebalance" element={<Rebalance />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
