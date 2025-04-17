@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Wallet, ChevronDown } from "lucide-react";
+import { Plus, Wallet, ChevronDown, RefreshCw } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import AllocationChart from "@/components/charts/AllocationChart";
 import {
@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
+import { usePortfolioPriceUpdater } from "@/hooks/portfolio/usePortfolioPriceUpdater";
 
 // Interface for assets
 interface Asset {
@@ -48,6 +49,7 @@ const Portfolios = () => {
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<number | null>(null);
   const [viewType, setViewType] = useState<"single" | "all">("single");
   const [loading, setLoading] = useState(true);
+  const { updateAllPortfoliosPrices, isUpdating } = usePortfolioPriceUpdater();
   
   // Efeito para carregar carteiras do localStorage ao montar o componente
   useEffect(() => {
@@ -83,6 +85,18 @@ const Portfolios = () => {
     
     loadUserPortfolios();
   }, []);
+  
+  // Atualizar os preços periodicamente
+  useEffect(() => {
+    if (portfolios.length === 0) return;
+    
+    // Atualizar os preços a cada 5 minutos
+    const interval = setInterval(() => {
+      refreshAllPrices();
+    }, 300000); // 5 minutos
+    
+    return () => clearInterval(interval);
+  }, [portfolios]);
 
   const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
 
@@ -92,6 +106,33 @@ const Portfolios = () => {
 
   const handleViewTypeChange = (value: "single" | "all") => {
     setViewType(value);
+  };
+  
+  // Função para atualizar os preços de todos os ativos
+  const refreshAllPrices = async () => {
+    if (isUpdating || portfolios.length === 0) return;
+    
+    toast("Atualizando preços dos ativos...");
+    const updated = await updateAllPortfoliosPrices();
+    
+    if (updated) {
+      // Recarregar as carteiras com os preços atualizados
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        
+        if (userId) {
+          const userPortfolios = getAllPortfoliosFromStorage(userId);
+          setPortfolios(userPortfolios);
+          toast.success("Preços atualizados com sucesso!");
+        }
+      } catch (error) {
+        console.error("Erro ao atualizar carteiras:", error);
+        toast.error("Erro ao atualizar preços");
+      }
+    } else {
+      toast("Nenhum preço foi alterado");
+    }
   };
 
   // Group assets by type and calculate their total value
@@ -143,12 +184,18 @@ const Portfolios = () => {
           <h1 className="text-3xl font-bold text-gray-900">Carteiras</h1>
           <p className="text-muted-foreground">Gerencie suas carteiras de investimentos</p>
         </div>
-        <Button className="mt-4 sm:mt-0 bg-primary hover:bg-primary/90" asChild>
-          <Link to="/portfolio/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Carteira
-          </Link>
-        </Button>
+        <div className="flex gap-2 mt-4 sm:mt-0">
+          <Button variant="outline" onClick={refreshAllPrices} disabled={isUpdating}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isUpdating ? 'animate-spin' : ''}`} />
+            {isUpdating ? 'Atualizando...' : 'Atualizar Preços'}
+          </Button>
+          <Button className="bg-primary hover:bg-primary/90" asChild>
+            <Link to="/portfolio/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Carteira
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {portfolios.length === 0 ? (

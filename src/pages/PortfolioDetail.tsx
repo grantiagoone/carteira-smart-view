@@ -1,18 +1,16 @@
 
-import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Edit, Wallet } from "lucide-react";
+import { ArrowLeft, Edit, Wallet, RefreshCw } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import AllocationChart from "@/components/charts/AllocationChart";
-import { toast } from "@/hooks/use-toast";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import DeletePortfolioDialog from "@/components/portfolios/DeletePortfolioDialog";
 
 const PortfolioDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { portfolio, loading, deletePortfolio } = usePortfolio(id);
+  const { portfolio, loading, deletePortfolio, refreshPrices, isUpdating } = usePortfolio(id);
 
   if (loading) {
     return (
@@ -57,6 +55,10 @@ const PortfolioDetail = () => {
           <p className="text-muted-foreground">Detalhes e alocação da carteira</p>
         </div>
         <div className="flex gap-2 mt-4 sm:mt-0">
+          <Button variant="outline" onClick={refreshPrices} disabled={isUpdating}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isUpdating ? 'animate-spin' : ''}`} />
+            {isUpdating ? 'Atualizando...' : 'Atualizar Preços'}
+          </Button>
           <Button asChild>
             <Link to={`/portfolio/${portfolio.id}/edit`}>
               <Edit className="mr-2 h-4 w-4" />
@@ -103,11 +105,42 @@ const PortfolioDetail = () => {
         </Card>
 
         <Card className="lg:col-span-3">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Ativos</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Esta funcionalidade será implementada em breve.</p>
+            {portfolio.assets && portfolio.assets.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-muted/50 text-xs uppercase">
+                      <th className="px-4 py-2 text-left">Ticker</th>
+                      <th className="px-4 py-2 text-left">Nome</th>
+                      <th className="px-4 py-2 text-right">Preço Atual</th>
+                      <th className="px-4 py-2 text-right">Qtd.</th>
+                      <th className="px-4 py-2 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {portfolio.assets.map((asset) => (
+                      <tr key={asset.id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3 text-left font-medium">{asset.ticker}</td>
+                        <td className="px-4 py-3 text-left">{asset.name}</td>
+                        <td className="px-4 py-3 text-right">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price)}
+                        </td>
+                        <td className="px-4 py-3 text-right">{asset.quantity}</td>
+                        <td className="px-4 py-3 text-right font-medium">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price * (asset.quantity || 0))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Esta carteira não possui ativos cadastrados.</p>
+            )}
           </CardContent>
           <CardFooter>
             <Button variant="outline" asChild>
