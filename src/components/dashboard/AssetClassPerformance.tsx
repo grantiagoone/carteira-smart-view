@@ -44,7 +44,10 @@ const AssetClassPerformance = ({ portfolioId }: AssetClassPerformanceProps) => {
         />
         <Bar 
           dataKey="performance" 
-          fill={(entry) => (entry.performance >= 0 ? "#10b981" : "#ef4444") as string}
+          fill={(entry) => {
+            // Fixed TypeScript error by explicitly returning a string
+            return entry.performance >= 0 ? "#10b981" : "#ef4444";
+          }} 
           radius={[4, 4, 0, 0]} 
         />
       </BarChart>

@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { Asset, getAssetPrice } from '@/services/brapiService';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Portfolio } from './types';
 
-export const usePortfolioPriceUpdater = (refreshInterval = 60000) => {
+// Changed the default refresh interval from 60000 (1 minute) to 10800000 (3 hours)
+export const usePortfolioPriceUpdater = (refreshInterval = 10800000) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -15,8 +14,6 @@ export const usePortfolioData = (portfolioId: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const { updatePortfolioPrices, isUpdating } = usePortfolioPriceUpdater();
   
-  // Initialize allocation and assets hooks with empty values
-  // We'll update them when the portfolio loads
   const {
     allocationItems,
     setAllocationItems,
@@ -42,11 +39,9 @@ export const usePortfolioData = (portfolioId: string | undefined) => {
     const fetchPortfolio = async () => {
       setLoading(true);
       try {
-        // Get the current authenticated user
         const { data: { session } } = await supabase.auth.getSession();
         const userId = session?.user?.id;
         
-        // Only load portfolios if we have a user ID and portfolio ID
         if (userId && portfolioId) {
           const storageKey = `portfolios_${userId}`;
           const savedPortfolios = localStorage.getItem(storageKey);
@@ -59,12 +54,9 @@ export const usePortfolioData = (portfolioId: string | undefined) => {
               setPortfolio(foundPortfolio);
               setAllocationItems([...foundPortfolio.allocationData]);
               
-              // Initialize selected assets and quantities if they exist
               if (foundPortfolio.assets) {
-                // Atualizar preços dos ativos (agora usando o hook)
                 await updatePortfolioPrices(portfolioId);
                 
-                // Recarregar a carteira com os preços atualizados
                 const updatedPortfolios = localStorage.getItem(storageKey);
                 if (updatedPortfolios) {
                   const parsedPortfolios = JSON.parse(updatedPortfolios);
@@ -74,18 +66,15 @@ export const usePortfolioData = (portfolioId: string | undefined) => {
                     setPortfolio(updatedPortfolio);
                     setSelectedAssets(updatedPortfolio.assets);
                     
-                    // Create quantities object from assets
                     const quantities: Record<string, number> = {};
                     updatedPortfolio.assets.forEach((asset: any) => {
                       quantities[asset.id] = asset.quantity || 0;
                     });
                     setAssetQuantities(quantities);
                     
-                    // Initialize ratings if they exist
                     if (updatedPortfolio.assetRatings) {
                       setAssetRatings(updatedPortfolio.assetRatings);
                     } else {
-                      // Default rating of 5 for all assets
                       const defaultRatings: Record<string, number> = {};
                       updatedPortfolio.assets.forEach((asset: any) => {
                         defaultRatings[asset.id] = 5;
@@ -104,7 +93,6 @@ export const usePortfolioData = (portfolioId: string | undefined) => {
             navigate("/portfolios");
           }
         } else {
-          // No user or portfolio ID, redirect to portfolios list
           toast("Você precisa estar logado para acessar esta carteira");
           navigate("/portfolios");
         }
@@ -121,16 +109,13 @@ export const usePortfolioData = (portfolioId: string | undefined) => {
     }
   }, [portfolioId, navigate, setAllocationItems, setSelectedAssets, setAssetQuantities, setAssetRatings, updatePortfolioPrices]);
   
-  // Adicionar atualização periódica dos preços
   useEffect(() => {
     if (!portfolio || !portfolioId) return;
     
-    // Atualizar preços a cada 5 minutos
     const interval = setInterval(() => {
       updatePortfolioPrices(portfolioId)
         .then(updated => {
           if (updated) {
-            // Recarregar a carteira do localStorage
             const fetchUpdatedPortfolio = async () => {
               try {
                 const { data: { session } } = await supabase.auth.getSession();
@@ -160,14 +145,13 @@ export const usePortfolioData = (portfolioId: string | undefined) => {
             fetchUpdatedPortfolio();
           }
         });
-    }, 300000); // 5 minutos
+    }, 10800000);
     
     return () => clearInterval(interval);
   }, [portfolio, portfolioId, updatePortfolioPrices]);
 
   const deletePortfolio = async () => {
     try {
-      // Get the current authenticated user
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       
@@ -187,7 +171,6 @@ export const usePortfolioData = (portfolioId: string | undefined) => {
     }
   };
 
-  // Função para atualizar manualmente os preços
   const refreshPrices = async () => {
     if (!portfolioId) return;
     
@@ -195,7 +178,6 @@ export const usePortfolioData = (portfolioId: string | undefined) => {
     const updated = await updatePortfolioPrices(portfolioId);
     
     if (updated) {
-      // Recarregar a carteira com os preços atualizados
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const userId = session?.user?.id;

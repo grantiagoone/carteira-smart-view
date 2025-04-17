@@ -18,7 +18,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
 import { usePortfolioPriceUpdater } from "@/hooks/portfolio/usePortfolioPriceUpdater";
 
-// Interface for assets
 interface Asset {
   id: string;
   ticker: string;
@@ -28,7 +27,6 @@ interface Asset {
   quantity: number;
 }
 
-// Interface for portfolio structure including assets
 interface Portfolio {
   id: number;
   name: string;
@@ -44,34 +42,28 @@ interface Portfolio {
 }
 
 const Portfolios = () => {
-  // Estado para armazenar as carteiras
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<number | null>(null);
   const [viewType, setViewType] = useState<"single" | "all">("single");
   const [loading, setLoading] = useState(true);
   const { updateAllPortfoliosPrices, isUpdating } = usePortfolioPriceUpdater();
   
-  // Efeito para carregar carteiras do localStorage ao montar o componente
   useEffect(() => {
     const loadUserPortfolios = async () => {
       setLoading(true);
       
       try {
-        // Get the current authenticated user
         const { data: { session } } = await supabase.auth.getSession();
         const userId = session?.user?.id;
         
-        // If we have a user, load their portfolios
         if (userId) {
           const userPortfolios = getAllPortfoliosFromStorage(userId);
           setPortfolios(userPortfolios);
           
-          // Seleciona a primeira carteira por padrão se existir alguma
           if (userPortfolios.length > 0) {
             setSelectedPortfolioId(userPortfolios[0].id);
           }
         } else {
-          // User not logged in, show empty state
           setPortfolios([]);
         }
       } catch (error) {
@@ -86,14 +78,12 @@ const Portfolios = () => {
     loadUserPortfolios();
   }, []);
   
-  // Atualizar os preços periodicamente
   useEffect(() => {
     if (portfolios.length === 0) return;
     
-    // Atualizar os preços a cada 5 minutos
     const interval = setInterval(() => {
       refreshAllPrices();
-    }, 300000); // 5 minutos
+    }, 10800000); // 3 horas
     
     return () => clearInterval(interval);
   }, [portfolios]);
@@ -108,7 +98,6 @@ const Portfolios = () => {
     setViewType(value);
   };
   
-  // Função para atualizar os preços de todos os ativos
   const refreshAllPrices = async () => {
     if (isUpdating || portfolios.length === 0) return;
     
@@ -116,7 +105,6 @@ const Portfolios = () => {
     const updated = await updateAllPortfoliosPrices();
     
     if (updated) {
-      // Recarregar as carteiras com os preços atualizados
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const userId = session?.user?.id;
@@ -135,7 +123,6 @@ const Portfolios = () => {
     }
   };
 
-  // Group assets by type and calculate their total value
   const getAssetsByType = (portfolio: Portfolio) => {
     if (!portfolio.assets || portfolio.assets.length === 0) return [];
     
@@ -323,7 +310,6 @@ const Portfolios = () => {
                   </CardFooter>
                 </Card>
 
-                {/* Asset list in the selected portfolio */}
                 {selectedPortfolio.assets && selectedPortfolio.assets.length > 0 && (
                   <Card>
                     <CardHeader>
