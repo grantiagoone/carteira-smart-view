@@ -24,11 +24,21 @@ export const useAuth = () => {
         setIsAuthenticated(!!session);
         setIsLoading(false);
         
-        // Clear any cached portfolios when logging out
+        // When logging out
         if (event === 'SIGNED_OUT') {
-          // Remove any user-specific data from localStorage
+          // Clear all user-specific data from localStorage
           if (session?.user?.id) {
+            // Clear portfolios data
             localStorage.removeItem(`portfolios_${session.user.id}`);
+            
+            // Clear contributions data
+            localStorage.removeItem(`contributions_${session.user.id}`);
+            
+            // Clear strategy history
+            localStorage.removeItem(`strategyHistory_${session.user.id}`);
+            
+            // Clear other user-specific data
+            localStorage.removeItem(`rebalancingHistory_${session.user.id}`);
           }
           
           // Only redirect if not already on login/register page
@@ -79,9 +89,19 @@ export const useAuth = () => {
       setUser(null);
       setSession(null);
       
-      // Clear user-specific localStorage data
+      // Clear ALL user-specific localStorage data
       if (userId) {
+        // Clear portfolios data
         localStorage.removeItem(`portfolios_${userId}`);
+        
+        // Clear contributions data
+        localStorage.removeItem(`contributions_${userId}`);
+        
+        // Clear strategy history
+        localStorage.removeItem(`strategyHistory_${userId}`);
+        
+        // Clear other user-specific data
+        localStorage.removeItem(`rebalancingHistory_${userId}`);
       }
       
       toast.success('Logout realizado com sucesso');

@@ -10,25 +10,39 @@ import AllocationChart from "@/components/charts/AllocationChart";
 import RecentContributionsList from "@/components/dashboard/RecentContributionsList";
 import AssetClassPerformance from "@/components/dashboard/AssetClassPerformance";
 import WelcomeModal from "@/components/modals/WelcomeModal";
+import { supabase } from "@/integrations/supabase/client";
+import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
 
 const Index = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [hasPortfolios, setHasPortfolios] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // Check if there are portfolios in localStorage
-    const savedPortfolios = localStorage.getItem('portfolios');
-    if (savedPortfolios) {
+    // Check if there are portfolios in localStorage for the current user
+    const loadUserPortfolios = async () => {
+      setLoading(true);
+      
       try {
-        const portfolios = JSON.parse(savedPortfolios);
-        setHasPortfolios(portfolios && portfolios.length > 0);
+        // Get the current authenticated user
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        
+        if (userId) {
+          const userPortfolios = getAllPortfoliosFromStorage(userId);
+          setHasPortfolios(userPortfolios && userPortfolios.length > 0);
+        } else {
+          setHasPortfolios(false);
+        }
       } catch (error) {
-        console.error("Erro ao carregar carteiras:", error);
+        console.error("Erro ao verificar carteiras:", error);
         setHasPortfolios(false);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      setHasPortfolios(false);
-    }
+    };
+    
+    loadUserPortfolios();
   }, []);
 
   return (
@@ -60,7 +74,7 @@ const Index = () => {
       
       <PortfolioSummary />
       
-      {hasPortfolios ? (
+      {hasPortfolios && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <Card className="investeja-card">
@@ -116,7 +130,7 @@ const Index = () => {
             </CardFooter>
           </Card>
         </>
-      ) : null}
+      )}
       
       <div className="investeja-section rounded-lg mb-8">
         <div className="investeja-container">

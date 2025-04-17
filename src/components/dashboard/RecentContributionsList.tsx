@@ -17,36 +17,74 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Contribution {
+  id: number;
+  date: string;
+  portfolio: string;
+  amount: string;
+  status: string;
+  allocations: {
+    asset: string;
+    class: string;
+    value: string;
+  }[];
+}
 
 const RecentContributionsList = () => {
-  const recentContributions = [
-    {
-      id: 1,
-      date: "15/04/2025",
-      portfolio: "Carteira Principal",
-      amount: "R$ 2.000,00",
-      status: "Alocado",
-      allocations: [
-        { asset: "PETR4", class: "Ações", value: "R$ 600,00" },
-        { asset: "MXRF11", class: "FIIs", value: "R$ 500,00" },
-        { asset: "Tesouro IPCA+", class: "Renda Fixa", value: "R$ 700,00" },
-        { asset: "IVVB11", class: "Internacional", value: "R$ 200,00" },
-      ]
-    },
-    {
-      id: 2,
-      date: "01/04/2025",
-      portfolio: "Aposentadoria",
-      amount: "R$ 1.500,00",
-      status: "Alocado",
-      allocations: [
-        { asset: "ITSA4", class: "Ações", value: "R$ 375,00" },
-        { asset: "KNRI11", class: "FIIs", value: "R$ 375,00" },
-        { asset: "CDB", class: "Renda Fixa", value: "R$ 600,00" },
-        { asset: "IVVB11", class: "Internacional", value: "R$ 150,00" },
-      ]
-    },
-  ];
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadContributions = async () => {
+      setLoading(true);
+      try {
+        // Get current user
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+
+        if (userId) {
+          // Load user-specific contributions
+          const userContributions = localStorage.getItem(`contributions_${userId}`);
+          if (userContributions) {
+            setContributions(JSON.parse(userContributions));
+          } else {
+            setContributions([]);
+          }
+        } else {
+          setContributions([]);
+        }
+      } catch (error) {
+        console.error("Error loading contributions:", error);
+        setContributions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContributions();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="w-full text-center py-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+      </div>
+    );
+  }
+
+  if (contributions.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-muted-foreground">Nenhum aporte encontrado.</p>
+        <Button variant="outline" className="mt-4" asChild>
+          <Link to="/contribution/new">Criar Novo Aporte</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Table>
@@ -60,7 +98,7 @@ const RecentContributionsList = () => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {recentContributions.map((contribution) => (
+        {contributions.map((contribution) => (
           <Collapsible key={contribution.id} asChild>
             <>
               <TableRow>

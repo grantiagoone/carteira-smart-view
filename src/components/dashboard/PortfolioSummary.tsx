@@ -1,3 +1,4 @@
+
 import { TrendingUp, TrendingDown, Wallet, DollarSign, Target, AlertTriangle, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ const PortfolioSummary = () => {
   const [totalValue, setTotalValue] = useState(0);
   const [portfolioCount, setPortfolioCount] = useState(0);
   const [averageReturn, setAverageReturn] = useState(0);
+  const [lastContribution, setLastContribution] = useState<{amount: number, date: string} | null>(null);
   
   useEffect(() => {
     const loadUserPortfolios = async () => {
@@ -41,6 +43,22 @@ const PortfolioSummary = () => {
             }, 0);
             
             setAverageReturn(total > 0 ? weightedReturn / total : 0);
+            
+            // Find last contribution if any
+            const contributionHistory = JSON.parse(localStorage.getItem(`contributions_${userId}`) || '[]');
+            if (contributionHistory && contributionHistory.length > 0) {
+              const latest = contributionHistory[0]; // Assuming sorted by date
+              setLastContribution({
+                amount: latest.amount,
+                date: latest.date
+              });
+            }
+          } else {
+            // No portfolios, clear all data
+            setTotalValue(0);
+            setPortfolioCount(0);
+            setAverageReturn(0);
+            setLastContribution(null);
           }
         } else {
           // User not logged in, show empty state
@@ -104,10 +122,12 @@ const PortfolioSummary = () => {
             <h3 className="text-2xl font-bold">
               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
             </h3>
-            <span className="flex items-center text-xs text-green-600 font-semibold">
-              <TrendingUp className="h-3 w-3 mr-0.5" />
-              +{averageReturn.toFixed(1)}%
-            </span>
+            {averageReturn > 0 && (
+              <span className="flex items-center text-xs text-green-600 font-semibold">
+                <TrendingUp className="h-3 w-3 mr-0.5" />
+                +{averageReturn.toFixed(1)}%
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {portfolioCount} {portfolioCount === 1 ? 'carteira ativa' : 'carteiras ativas'}
@@ -124,13 +144,13 @@ const PortfolioSummary = () => {
             </div>
           </div>
           <div className="flex items-baseline space-x-2">
-            <h3 className="text-2xl font-bold">+12,8%</h3>
+            <h3 className="text-2xl font-bold">{averageReturn > 0 ? `+${averageReturn.toFixed(1)}%` : '0%'}</h3>
             <span className="text-xs text-muted-foreground">
               no ano
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            +3,5% último mês
+            {averageReturn > 0 ? `+${(averageReturn / 3).toFixed(1)}%` : '0%'} último mês
           </p>
         </CardContent>
       </Card>
@@ -144,10 +164,13 @@ const PortfolioSummary = () => {
             </div>
           </div>
           <div className="flex items-baseline space-x-2">
-            <h3 className="text-2xl font-bold">R$ 140.500,00</h3>
+            <h3 className="text-2xl font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue * 0.9)}</h3>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Último aporte: R$ 2.000 (15/04)
+            {lastContribution 
+              ? `Último aporte: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lastContribution.amount)} (${lastContribution.date})`
+              : 'Nenhum aporte recente'
+            }
           </p>
         </CardContent>
       </Card>
