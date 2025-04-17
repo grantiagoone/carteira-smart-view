@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Asset, searchAssets } from "@/services/brapiService";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface AssetSearchProps {
   onAddAsset: (asset: Asset) => void;
@@ -17,6 +19,7 @@ export const AssetSearch = ({ onAddAsset, selectedAssets }: AssetSearchProps) =>
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Asset[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async () => {
     if (searchQuery.trim().length === 0) {
@@ -25,6 +28,7 @@ export const AssetSearch = ({ onAddAsset, selectedAssets }: AssetSearchProps) =>
     }
 
     setIsSearching(true);
+    setError(null);
     
     try {
       // Usar o serviço BRAPI para buscar dados reais
@@ -33,10 +37,12 @@ export const AssetSearch = ({ onAddAsset, selectedAssets }: AssetSearchProps) =>
       setSearchResults(results);
       
       if (results.length === 0) {
-        toast("Nenhum ativo encontrado com esse termo");
+        setError(`Nenhum ativo encontrado com o termo "${searchQuery}"`);
+        toast(`Nenhum ativo encontrado para "${searchQuery}"`);
       }
     } catch (error) {
       console.error("Erro na busca:", error);
+      setError("Erro ao buscar ativos. Verifique o token da API e tente novamente.");
       toast("Erro ao buscar ativos. Tente novamente.");
     } finally {
       setIsSearching(false);
@@ -88,6 +94,13 @@ export const AssetSearch = ({ onAddAsset, selectedAssets }: AssetSearchProps) =>
         <div className="flex justify-center p-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
+      )}
+
+      {error && !isSearching && (
+        <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {searchResults.length > 0 && !isSearching && (

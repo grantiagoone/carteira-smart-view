@@ -1,7 +1,12 @@
+
 export interface BrapiAssetResponse {
-  results: BrapiAsset[];
-  requestedAt: string;
-  took: string;
+  results?: BrapiAsset[];
+  stocks?: BrapiAsset[];
+  indexes?: any[];
+  availableSectors?: string[];
+  availableStockTypes?: string[];
+  requestedAt?: string;
+  took?: string;
 }
 
 export interface BrapiAsset {
@@ -42,6 +47,8 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     const baseUrl = `https://brapi.dev/api/quote/list?search=${encodeURIComponent(query)}`;
     const url = token ? `${baseUrl}&token=${token}` : baseUrl;
     
+    console.log("Realizando busca de ativos com URL:", url);
+    
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -49,8 +56,18 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     }
     
     const data: BrapiAssetResponse = await response.json();
+    console.log("Resposta da API:", data);
     
-    const assets: Asset[] = data.results.map(item => ({
+    // Lidando com a nova estrutura de resposta da API
+    // A API pode retornar os resultados em data.results ou data.stocks
+    const apiResults = data.results || data.stocks || [];
+    
+    if (!apiResults.length) {
+      console.log("Nenhum ativo encontrado na resposta da API");
+      return [];
+    }
+    
+    const assets: Asset[] = apiResults.map(item => ({
       id: item.symbol,
       ticker: item.symbol,
       name: item.longName || item.shortName,
@@ -59,6 +76,7 @@ export async function searchAssets(query: string): Promise<Asset[]> {
       change: item.regularMarketChangePercent
     }));
     
+    console.log("Assets processados:", assets);
     return assets;
   } catch (error) {
     console.error("Erro ao buscar ativos:", error);
