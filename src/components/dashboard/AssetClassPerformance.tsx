@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface AssetClassPerformanceProps {
@@ -8,17 +8,12 @@ interface AssetClassPerformanceProps {
 
 const AssetClassPerformance = ({ portfolioId }: AssetClassPerformanceProps) => {
   // Mock data - In a real app, this would come from your API based on the portfolio ID
-  const data = [
+  const data = useMemo(() => [
     { name: 'Ações', performance: 7.2 },
     { name: 'FIIs', performance: 4.5 },
     { name: 'Renda Fixa', performance: 9.8 },
     { name: 'Internacional', performance: -2.3 },
-  ];
-
-  // Create a custom color function that returns different colors based on performance
-  const getBarColor = (entry: any) => {
-    return entry.performance >= 0 ? "#10b981" : "#ef4444";
-  };
+  ], []);
 
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -49,12 +44,8 @@ const AssetClassPerformance = ({ portfolioId }: AssetClassPerformanceProps) => {
         />
         <Bar 
           dataKey="performance" 
-          fill="#10b981"  
           radius={[4, 4, 0, 0]} 
-          // Use the fillOpacity property with a function instead of fill with function
-          fillOpacity={1}
-          stroke={(entry) => entry.performance >= 0 ? "#10b981" : "#ef4444"}
-          strokeWidth={2}
+          fill={(entry) => (entry.performance >= 0 ? "#10b981" : "#ef4444")}
         />
       </BarChart>
     </ResponsiveContainer>

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,10 +95,11 @@ const Rebalance = () => {
     // Create current allocation - in a real app, this would be calculated from assets
     // For this example, we'll create some variation to show rebalancing needs
     const current = allocationData.map(item => {
-      // Create some random variation for demo purposes
+      // Create some variation for demo purposes
       // In a real app, this would be calculated from actual holdings
+      const seed = item.name.charCodeAt(0) % 10; // Deterministic variation based on name
       const currentValue = Math.max(0, Math.min(100, 
-        item.value + (Math.random() > 0.5 ? 15 : -15)
+        item.value + (seed > 5 ? 15 : -15)
       ));
       
       return {
@@ -149,6 +150,15 @@ const Rebalance = () => {
   const handlePortfolioChange = (value: string) => {
     setSelectedPortfolioId(value);
   };
+
+  // Memoize the allocation charts to prevent unnecessary re-renders
+  const currentAllocationChart = useMemo(() => (
+    <AllocationChart data={currentAllocation} />
+  ), [currentAllocation]);
+
+  const targetAllocationChart = useMemo(() => (
+    <AllocationChart data={targetAllocation} />
+  ), [targetAllocation]);
 
   if (loading) {
     return (
@@ -278,11 +288,11 @@ const Rebalance = () => {
               <div className="lg:w-1/2 flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <h3 className="font-medium mb-4 text-center">Alocação Atual</h3>
-                  <AllocationChart data={currentAllocation} />
+                  {currentAllocationChart}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-medium mb-4 text-center">Alocação Alvo</h3>
-                  <AllocationChart data={targetAllocation} />
+                  {targetAllocationChart}
                 </div>
               </div>
             </div>

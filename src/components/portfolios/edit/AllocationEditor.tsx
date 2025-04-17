@@ -1,29 +1,18 @@
 
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash } from "lucide-react";
-import { toast } from "sonner";
+import { FormLabel } from "@/components/ui/form";
+import { X, Plus } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { AllocationItem } from "@/hooks/portfolio/types";
-import { ColorPicker } from "@/components/portfolios/ColorPicker";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose
-} from "@/components/ui/dialog";
 
 interface AllocationEditorProps {
   allocationItems: AllocationItem[];
-  updateAllocationItem: (index: number, item: AllocationItem) => void;
-  addAllocationItem: (item: AllocationItem) => void;
-  deleteAllocationItem: (name: string) => void;
+  updateAllocationItem: (index: number, field: keyof AllocationItem, value: string | number) => void;
+  addAllocationItem: () => void;
+  deleteAllocationItem: (name: string) => Promise<boolean>;
 }
 
 const AllocationEditor = ({
@@ -33,141 +22,116 @@ const AllocationEditor = ({
   deleteAllocationItem
 }: AllocationEditorProps) => {
   const [totalAllocation, setTotalAllocation] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
     // Calculate total allocation whenever items change
     const total = allocationItems.reduce((sum, item) => sum + item.value, 0);
     setTotalAllocation(total);
+    setShowWarning(total !== 100);
   }, [allocationItems]);
 
-  const handleDeleteAllocation = (allocationName: string) => {
-    if (allocationItems.length <= 1) {
-      toast.error("Não é possível excluir a última alocação");
-      return;
-    }
-    
-    deleteAllocationItem(allocationName);
-  };
-
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Alocação da Carteira</CardTitle>
-        <CardDescription>
-          Defina como seus investimentos devem ser distribuídos entre as diferentes classes de ativos
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Macro Alocação</h3>
+        <Button type="button" onClick={addAllocationItem} variant="outline" size="sm">
+          <Plus className="h-4 w-4 mr-2" />
+          Adicionar Classe de Ativo
+        </Button>
+      </div>
+
+      {showWarning && (
+        <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            A alocação total deve ser 100%. Atualmente: {totalAllocation}%
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {allocationItems.length === 0 ? (
+        <div className="text-center py-6 border border-dashed rounded-md bg-muted/50">
+          <p className="text-muted-foreground">Nenhuma alocação definida</p>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={addAllocationItem}
+            className="mt-2"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar Classe de Ativo
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4">
           {allocationItems.map((item, index) => (
             <div 
               key={index} 
-              className="grid grid-cols-12 gap-4 items-center border p-3 rounded-md relative"
-              style={{ borderLeftColor: item.color, borderLeftWidth: '4px' }}
+              className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border rounded-md"
+              style={{ borderLeft: `4px solid ${item.color}` }}
             >
-              <div className="col-span-5 sm:col-span-5">
-                <Input 
-                  placeholder="Nome da alocação" 
-                  value={item.name}
-                  onChange={(e) => updateAllocationItem(index, { ...item, name: e.target.value })}
-                  className="border-none shadow-none focus-visible:ring-0"
-                />
-              </div>
-              <div className="col-span-5 sm:col-span-5">
-                <div className="flex items-center gap-2">
-                  <Slider 
-                    value={[item.value]}
-                    min={0}
-                    max={100}
-                    step={1}
-                    onValueChange={(values) => {
-                      updateAllocationItem(index, { ...item, value: values[0] });
-                    }}
-                  />
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <FormLabel className="text-xs">Nome</FormLabel>
                   <Input 
-                    type="number"
-                    min={0}
-                    max={100}
+                    value={item.name} 
+                    onChange={(e) => updateAllocationItem(index, "name", e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <FormLabel className="text-xs">Alocação (%)</FormLabel>
+                  <Input 
+                    type="number" 
                     value={item.value}
                     onChange={(e) => {
-                      const value = parseInt(e.target.value) || 0;
-                      updateAllocationItem(index, { ...item, value: Math.min(100, Math.max(0, value)) });
+                      const newValue = parseInt(e.target.value) || 0;
+                      updateAllocationItem(index, "value", newValue);
                     }}
-                    className="w-16 text-right"
+                    min="0" 
+                    max="100"
+                    className="mt-1"
                   />
-                  <span className="ml-1">%</span>
+                </div>
+                <div>
+                  <FormLabel className="text-xs">Cor</FormLabel>
+                  <div className="flex items-center mt-1 gap-2">
+                    <Input 
+                      type="color" 
+                      value={item.color} 
+                      onChange={(e) => updateAllocationItem(index, "color", e.target.value)}
+                      className="w-12 h-8 p-0 cursor-pointer"
+                    />
+                    <Input 
+                      type="text" 
+                      value={item.color} 
+                      onChange={(e) => updateAllocationItem(index, "color", e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="col-span-1 sm:col-span-1 flex justify-center">
-                <ColorPicker 
-                  color={item.color} 
-                  onChange={(color) => updateAllocationItem(index, { ...item, color })}
-                />
-              </div>
-              <div className="col-span-1 sm:col-span-1 flex justify-center">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash size={16} />
-                      <span className="sr-only">Excluir alocação</span>
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Excluir alocação</DialogTitle>
-                      <DialogDescription>
-                        Tem certeza que deseja excluir a alocação "{item.name}"?
-                        Esta ação não pode ser desfeita.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                      <DialogClose asChild>
-                        <Button variant="outline">Cancelar</Button>
-                      </DialogClose>
-                      <Button 
-                        variant="destructive" 
-                        onClick={() => {
-                          handleDeleteAllocation(item.name);
-                        }}
-                      >
-                        Excluir
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm"
+                onClick={() => deleteAllocationItem(item.name)}
+                className="min-w-[40px] h-10"
+              >
+                <X className="h-5 w-5" />
+              </Button>
             </div>
           ))}
-          
-          <div className="flex justify-between items-center pt-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => addAllocationItem({
-                name: "Nova Alocação",
-                value: 0,
-                color: `#${Math.floor(Math.random()*16777215).toString(16)}`
-              })}
-            >
-              Adicionar Alocação
-            </Button>
-            
-            <div className="text-sm">
-              Total: <span className={`font-bold ${totalAllocation !== 100 ? 'text-red-500' : 'text-green-500'}`}>
-                {totalAllocation}%
-              </span>
-              {totalAllocation !== 100 && (
-                <p className="text-xs text-red-500">O total deve ser 100%</p>
-              )}
-            </div>
+
+          <div className="mt-2 flex justify-between items-center py-2 px-4 bg-muted/50 rounded-md">
+            <span className="font-medium">Total:</span>
+            <span className={totalAllocation !== 100 ? "text-destructive font-bold" : "font-bold"}>
+              {totalAllocation}%
+            </span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };
 
