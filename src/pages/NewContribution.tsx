@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -11,10 +10,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
-import { toast } from "sonner";
 
 const formSchema = z.object({
   portfolioId: z.string({
@@ -34,7 +32,6 @@ interface Portfolio {
 }
 
 const NewContribution = () => {
-  const { toast: useToastFn } = useToast();
   const navigate = useNavigate();
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [userPortfolios, setUserPortfolios] = useState<Portfolio[]>([]);
@@ -49,17 +46,14 @@ const NewContribution = () => {
     },
   });
 
-  // Load user portfolios on component mount
   useEffect(() => {
     const loadUserPortfolios = async () => {
       setLoading(true);
       try {
-        // Get current user
         const { data: { session } } = await supabase.auth.getSession();
         const userId = session?.user?.id;
 
         if (userId) {
-          // Load portfolios for the current user
           const portfolios = getAllPortfoliosFromStorage(userId);
           setUserPortfolios(portfolios.map(p => ({ id: p.id, name: p.name })));
         }
@@ -75,26 +69,21 @@ const NewContribution = () => {
   }, []);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Find the selected portfolio name for display
     const selectedPortfolio = userPortfolios.find(p => p.id.toString() === values.portfolioId);
     setSelectedPortfolioName(selectedPortfolio?.name || "");
     
-    // Format the amount for display
     const formattedAmount = parseFloat(values.amount.replace(",", ".")).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     });
     
-    // Save to state for the next screen
     console.log(values);
     
-    // Show the allocation suggestion
     setShowSuggestion(true);
   }
 
   const handleConfirm = async () => {
     try {
-      // Get current user
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       
@@ -103,12 +92,10 @@ const NewContribution = () => {
         return;
       }
       
-      // Get form values
       const values = form.getValues();
       const portfolioId = values.portfolioId;
       const amount = values.amount.replace(",", ".");
       
-      // Create contribution object
       const newContribution = {
         id: Date.now(),
         date: new Date().toLocaleDateString('pt-BR'),
@@ -129,7 +116,6 @@ const NewContribution = () => {
         }))
       };
       
-      // Save to localStorage
       const storageKey = `contributions_${userId}`;
       const existingContributions = localStorage.getItem(storageKey);
       let contributions = [];
@@ -141,9 +127,8 @@ const NewContribution = () => {
       contributions.push(newContribution);
       localStorage.setItem(storageKey, JSON.stringify(contributions));
       
-      toast({
-        title: "Aporte realizado com sucesso!",
-        description: `O aporte foi registrado e os ativos foram alocados conforme sugerido.`,
+      toast.success("Aporte realizado com sucesso!", {
+        description: "O aporte foi registrado e os ativos foram alocados conforme sugerido."
       });
   
       navigate("/contributions");
@@ -153,7 +138,6 @@ const NewContribution = () => {
     }
   };
 
-  // Dummy data for suggested allocation
   const suggestedAllocation = [
     { asset: "PETR4", class: "Ações", percentage: 15, amount: 300 },
     { asset: "ITSA4", class: "Ações", percentage: 10, amount: 200 },
@@ -242,7 +226,6 @@ const NewContribution = () => {
                           placeholder="Ex: 1000,00" 
                           {...field} 
                           onChange={(e) => {
-                            // Format the input to handle currency
                             const value = e.target.value.replace(/[^0-9,]/g, '');
                             field.onChange(value);
                           }}
