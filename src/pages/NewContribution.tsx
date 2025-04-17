@@ -2,7 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -12,6 +12,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   portfolioId: z.string({
@@ -25,10 +28,18 @@ const formSchema = z.object({
   ),
 });
 
+interface Portfolio {
+  id: number;
+  name: string;
+}
+
 const NewContribution = () => {
-  const { toast } = useToast();
+  const { toast: useToastFn } = useToast();
   const navigate = useNavigate();
   const [showSuggestion, setShowSuggestion] = useState(false);
+  const [userPortfolios, setUserPortfolios] = useState<Portfolio[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPortfolioName, setSelectedPortfolioName] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,21 +49,108 @@ const NewContribution = () => {
     },
   });
 
+  // Load user portfolios on component mount
+  useEffect(() => {
+    const loadUserPortfolios = async () => {
+      setLoading(true);
+      try {
+        // Get current user
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+
+        if (userId) {
+          // Load portfolios for the current user
+          const portfolios = getAllPortfoliosFromStorage(userId);
+          setUserPortfolios(portfolios.map(p => ({ id: p.id, name: p.name })));
+        }
+      } catch (error) {
+        console.error("Error loading portfolios:", error);
+        toast.error("Erro ao carregar carteiras");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserPortfolios();
+  }, []);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, we would save this to a database
+    // Find the selected portfolio name for display
+    const selectedPortfolio = userPortfolios.find(p => p.id.toString() === values.portfolioId);
+    setSelectedPortfolioName(selectedPortfolio?.name || "");
+    
+    // Format the amount for display
+    const formattedAmount = parseFloat(values.amount.replace(",", ".")).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+    
+    // Save to state for the next screen
     console.log(values);
     
     // Show the allocation suggestion
     setShowSuggestion(true);
   }
 
-  const handleConfirm = () => {
-    toast({
-      title: "Aporte realizado com sucesso!",
-      description: `O aporte foi registrado e os ativos foram alocados conforme sugerido.`,
-    });
-
-    navigate("/contributions");
+  const handleConfirm = async () => {
+    try {
+      // Get current user
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      
+      if (!userId) {
+        toast.error("Você precisa estar logado para registrar um aporte");
+        return;
+      }
+      
+      // Get form values
+      const values = form.getValues();
+      const portfolioId = values.portfolioId;
+      const amount = values.amount.replace(",", ".");
+      
+      // Create contribution object
+      const newContribution = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString('pt-BR'),
+        portfolio: selectedPortfolioName,
+        portfolioId: parseInt(portfolioId),
+        amount: parseFloat(amount).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        }),
+        status: "Concluído",
+        allocations: suggestedAllocation.map(item => ({
+          asset: item.asset,
+          class: item.class,
+          value: item.amount.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+          })
+        }))
+      };
+      
+      // Save to localStorage
+      const storageKey = `contributions_${userId}`;
+      const existingContributions = localStorage.getItem(storageKey);
+      let contributions = [];
+      
+      if (existingContributions) {
+        contributions = JSON.parse(existingContributions);
+      }
+      
+      contributions.push(newContribution);
+      localStorage.setItem(storageKey, JSON.stringify(contributions));
+      
+      toast({
+        title: "Aporte realizado com sucesso!",
+        description: `O aporte foi registrado e os ativos foram alocados conforme sugerido.`,
+      });
+  
+      navigate("/contributions");
+    } catch (error) {
+      console.error("Erro ao salvar aporte:", error);
+      toast.error("Erro ao salvar aporte");
+    }
   };
 
   // Dummy data for suggested allocation
@@ -103,12 +201,31 @@ const NewContribution = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="1">Carteira Principal</SelectItem>
-                          <SelectItem value="2">Aposentadoria</SelectItem>
+                          {userPortfolios.length > 0 ? (
+                            userPortfolios.map((portfolio) => (
+                              <SelectItem key={portfolio.id} value={portfolio.id.toString()}>
+                                {portfolio.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-portfolios" disabled>
+                              Nenhuma carteira encontrada
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Selecione a carteira na qual você deseja realizar o aporte.
+                        {userPortfolios.length > 0 
+                          ? "Selecione a carteira na qual você deseja realizar o aporte."
+                          : (
+                            <div className="text-amber-600">
+                              Você ainda não possui carteiras. {" "}
+                              <Link to="/portfolio/new" className="underline font-medium">
+                                Criar uma carteira
+                              </Link>
+                            </div>
+                          )
+                        }
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -138,8 +255,16 @@ const NewContribution = () => {
                     </FormItem>
                   )}
                 />
-                <div className="flex justify-end">
-                  <Button type="submit">Calcular Sugestão de Alocação</Button>
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" asChild>
+                    <Link to="/contributions">Cancelar</Link>
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={userPortfolios.length === 0 || loading}
+                  >
+                    {loading ? "Carregando..." : "Calcular Sugestão de Alocação"}
+                  </Button>
                 </div>
               </form>
             </Form>
@@ -150,7 +275,12 @@ const NewContribution = () => {
           <CardHeader>
             <CardTitle>Sugestão de Alocação</CardTitle>
             <CardDescription>
-              Com base na sua estratégia atual, sugerimos a seguinte alocação para o seu aporte de R$ 2.000,00 na Carteira Principal
+              Com base na sua estratégia atual, sugerimos a seguinte alocação para o seu aporte de{' '}
+              {parseFloat(form.getValues().amount.replace(',', '.')).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+              })}{' '}
+              na {selectedPortfolioName}
             </CardDescription>
           </CardHeader>
           <CardContent>

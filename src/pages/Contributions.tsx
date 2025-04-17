@@ -4,14 +4,16 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getAllPortfoliosFromStorage } from "@/hooks/portfolio/portfolioUtils";
 
 interface Contribution {
   id: number;
   date: string;
   portfolio: string;
+  portfolioId: number;
   amount: string;
   status: string;
   allocations: {
@@ -24,9 +26,10 @@ interface Contribution {
 const Contributions = () => {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasPortfolios, setHasPortfolios] = useState(false);
 
   useEffect(() => {
-    const loadContributions = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
         // Get current user
@@ -34,26 +37,33 @@ const Contributions = () => {
         const userId = session?.user?.id;
 
         if (userId) {
+          // Check if user has any portfolios
+          const portfolios = getAllPortfoliosFromStorage(userId);
+          setHasPortfolios(portfolios.length > 0);
+          
           // Load user-specific contributions
-          const userContributions = localStorage.getItem(`contributions_${userId}`);
-          if (userContributions) {
-            setContributions(JSON.parse(userContributions));
+          const storageKey = `contributions_${userId}`;
+          const savedContributions = localStorage.getItem(storageKey);
+          
+          if (savedContributions) {
+            setContributions(JSON.parse(savedContributions));
           } else {
             setContributions([]);
           }
         } else {
+          setHasPortfolios(false);
           setContributions([]);
         }
       } catch (error) {
         console.error("Error loading contributions:", error);
-        toast("Erro ao carregar aportes");
+        toast.error("Erro ao carregar aportes");
         setContributions([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadContributions();
+    loadData();
   }, []);
 
   return (
@@ -63,8 +73,8 @@ const Contributions = () => {
           <h1 className="text-3xl font-bold text-gray-900">Histórico de Aportes</h1>
           <p className="text-muted-foreground">Visualize e gerencie seus aportes e alocações</p>
         </div>
-        <Button className="mt-4 sm:mt-0" asChild>
-          <Link to="/contribution/new">
+        <Button className="mt-4 sm:mt-0" asChild disabled={!hasPortfolios}>
+          <Link to={hasPortfolios ? "/contribution/new" : "#"}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Aporte
           </Link>
@@ -121,21 +131,28 @@ const Contributions = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-muted-foreground mb-6">
+              <Wallet className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground mb-6 mt-4">
                 Você ainda não possui aportes registrados.
               </p>
               <p className="mb-8">
-                Para começar, primeiro crie uma carteira e depois registre seu primeiro aporte.
+                {hasPortfolios 
+                  ? "Para começar, registre seu primeiro aporte."
+                  : "Para começar, primeiro crie uma carteira e depois registre seu primeiro aporte."
+                }
               </p>
               <div className="flex flex-col gap-4 max-w-xs mx-auto">
-                <Button asChild>
-                  <Link to="/portfolio/new">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Criar Carteira
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/contribution/new">
+                {!hasPortfolios && (
+                  <Button asChild>
+                    <Link to="/portfolio/new">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Criar Carteira
+                    </Link>
+                  </Button>
+                )}
+                <Button variant={hasPortfolios ? "default" : "outline"} asChild disabled={!hasPortfolios}>
+                  <Link to={hasPortfolios ? "/contribution/new" : "#"}>
+                    {hasPortfolios && <Plus className="mr-2 h-4 w-4" />}
                     Registrar Aporte
                   </Link>
                 </Button>
